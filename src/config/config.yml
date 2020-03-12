@@ -1,0 +1,5 @@
+destination: "file:///home/msm/tmp/logserver"
+encode: true
+
+server:
+    port: 8008
