@@ -12,16 +12,21 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 )
 
+// LogUploadEntry provides information for a log asset,
+// one that is being uploaded to the log server.
 type LogUploadEntry struct {
 	name  string // The name of the source (i.e. author)
 	email string // An email address for ths source
@@ -41,14 +46,14 @@ func createDirectory(dirName string) bool {
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(dirName, 0755)
 		if errDir != nil {
-			fmt.Println("[LOGSERVER] Unable to create directory " + dirName + ".")
+			log.Println("[LOGSERVER-Error] Unable to create directory " + dirName + ".")
 			return false
 		}
 		return true
 	}
 
 	if src.Mode().IsRegular() {
-		fmt.Println("[LOGSERVER] " + dirName + " already exists as a file.")
+		log.Println("[LOGSERVER-Error] " + dirName + " already exists as a file.")
 		return false
 	}
 
@@ -58,12 +63,12 @@ func createDirectory(dirName string) bool {
 
 // Save the log to a local directory.
 func saveLogToDirectory(data []byte, dirName string, fileName string) error {
-	fmt.Println("[LOGSERVER] Saving log to " + dirName + "/" + fileName + ".")
+	log.Println("[LOGSERVER-Info] Saving log to " + dirName + "/" + fileName + ".")
 
 	// Make sure that the path exists and logs can be stored there.
 	status := createDirectory(dirName)
 	if !status {
-		fmt.Println("[LOGSERVER] Unable to save log to " + dirName + ".")
+		log.Println("[LOGSERVER-Error] Unable to save log to " + dirName + ".")
 		return errors.New("unable to create directory")
 	}
 
@@ -78,25 +83,25 @@ func saveLogToDirectory(data []byte, dirName string, fileName string) error {
 func saveLog(data []byte, fileName string) error {
 	// Retrieve destination from logserver configuration.
 	dst := viper.GetString("Destination")
-	fmt.Println("[LOGSERVER] Saving log to " + dst + ".")
+	log.Println("[LOGSERVER-Info] Saving log to " + dst + ".")
 
 	// The expectation is that the desination is specified as a formal URL.
 	u, err := url.Parse(dst)
 	if err != nil {
-		fmt.Println("[LOGSERVER] Unable to parse destination URL " + dst + ".")
+		log.Println("[LOGSERVER-Error] Unable to parse destination URL " + dst + ".")
 		return err
 	}
 
 	if u.Scheme == "file" {
 		if err = saveLogToDirectory(data, u.Path, fileName); err != nil {
-			fmt.Println("[LOGSERVER] Unable to save log to " + u.Path + ".")
-			return errors.New("unable to upload file")
+			fmt.Println("[LOGSERVER-Error] Unable to save log to " + u.Path + ".")
+			return err
 		}
 	} else if u.Scheme == "http" {
-		fmt.Println("[LOGSERVER] Uploading log to " + u.Path + ".")
+		log.Println("[LOGSERVER-Info] Uploading log to " + u.Path + ".")
 		// Todo: upload file to HTTP server.
 	} else {
-		fmt.Println("[LOGSERVER] Unsupported destination URL " + dst + ".")
+		log.Println("[LOGSERVER-Error] Unsupported destination URL " + dst + ".")
 		return errors.New("unable to upload file")
 	}
 
@@ -105,13 +110,7 @@ func saveLog(data []byte, fileName string) error {
 
 // Upload the file.
 func upload(context *gin.Context, file *multipart.FileHeader) error {
-	/*
-		filename := filepath.Base(file.Filename)
-		if err := context.SaveUploadedFile(file, filename); err != nil {
-			context.String(http.StatusBadRequest, fmt.Sprintf("upload file err: %s", err.Error()))
-			return err
-		}
-	*/
+	// Open the file for
 	src, err := file.Open()
 	if err != nil {
 		context.String(http.StatusBadRequest, fmt.Sprintf("upload file err: %s", err.Error()))
@@ -144,12 +143,14 @@ func upload(context *gin.Context, file *multipart.FileHeader) error {
 	filename := filepath.Base(file.Filename)
 	if err = saveLog(content, filename); err != nil {
 		context.String(http.StatusBadRequest, fmt.Sprintf("upload file err: %s", err.Error()))
-		return errors.New("unable to save file")
+		return err
 	}
 
 	return nil
 }
 
+// LogDownloadEntry provides information for a log asset,
+// one that is being downloaded from the log server.
 type LogDownloadEntry struct {
 	Name string      // The name of the log.
 	File os.FileInfo // A reference to the downloaded file.
@@ -158,12 +159,12 @@ type LogDownloadEntry struct {
 // Retrieve the logs from the server.
 func getLogs(src string) ([]LogDownloadEntry, error) {
 	var logs []LogDownloadEntry
-	fmt.Println("[LOGSERVER] Reading logs from " + src + ".")
+	log.Println("[LOGSERVER-Info] Reading logs from " + src + ".")
 
 	// The expectation is that the source is specified as a formal URL.
 	u, err := url.Parse(src)
 	if err != nil {
-		fmt.Println("[LOGSERVER] Unable to parse source URL " + src + ".")
+		log.Println("[LOGSERVER-Error] Unable to parse source URL " + src + ".")
 		return nil, err
 	}
 
@@ -171,23 +172,23 @@ func getLogs(src string) ([]LogDownloadEntry, error) {
 		// Logs are stored locally on the server.
 		files, err := ioutil.ReadDir(u.Path)
 		if err != nil {
-			fmt.Println("[LOGSERVER] Unable to read directory " + u.Path + ".")
-			return nil, errors.New("unable to read directory")
+			log.Println("[LOGSERVER-Error] Unable to read directory " + u.Path + ".")
+			return nil, err
 		}
 
 		logs = []LogDownloadEntry{}
 
 		for _, f := range files {
-			fmt.Println("[LOGSERVER] Found log file " + f.Name() + ".")
+			log.Println("[LOGSERVER-Info] Found log file " + f.Name() + ".")
 			entry := LogDownloadEntry{Name: f.Name(), File: f}
 			logs = append(logs, entry)
 		}
 
 	} else if u.Scheme == "http" {
-		fmt.Println("[LOGSERVER] Retrieving logs from " + u.Path + ".")
+		log.Println("[LOGSERVER-Info] Retrieving logs from " + u.Path + ".")
 		// Todo: retrieve logs from HTTP server.
 	} else {
-		fmt.Println("[LOGSERVER] Unsupported source URL " + src + ".")
+		log.Println("[LOGSERVER-Error] Unsupported source URL " + src + ".")
 		return nil, errors.New("unable to upload file")
 	}
 
@@ -206,7 +207,8 @@ func main() {
 	viper.AddConfigPath("$HOME/.logserver")
 	viper.ReadInConfig()
 
-	// Todo: configure logging.
+	// Todo: configure server logging. Currently, all server output is directed
+	// towards the Go "log" package via log.Println().
 
 	// Initialize gin HTTP server.
 	router := gin.Default()
@@ -215,12 +217,14 @@ func main() {
 	//router.MaxMultipartMemory = 8 << 20 // 8 MiB
 	//router.Static("/", "./public")
 
+	// Handler for REST API, http://<ip_address>:<port>/ping.
 	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
 		})
 	})
 
+	// Handler for REST API, http://<ip_address>:<port>/upload.
 	router.POST("/upload", func(c *gin.Context) {
 		name := c.PostForm("name")
 		email := c.PostForm("email")
@@ -241,6 +245,61 @@ func main() {
 		c.String(http.StatusOK, fmt.Sprintf("File %s uploaded successfully with fields name=%s and email=%s.", file.Filename, name, email))
 	})
 
+	// Handler for REST API, http://<ip_address>:<port>/download.
+	router.GET("/download", func(c *gin.Context) {
+		log.Println("[LOGSERVER-Info] In download handler.")
+
+		fileName := c.Query("name")
+		if fileName == "" {
+			log.Println("[LOGSERVER-Error] query key name was not provided.")
+			c.String(http.StatusBadRequest, fmt.Sprintf("query err: %s key required", "name"))
+			return
+		}
+
+		src := viper.GetString("Destination")
+		// The expectation is that the source is specified as a formal URL.
+		u, err := url.Parse(src)
+		if err != nil {
+			log.Println("[LOGSERVER-Error] Unable to parse source URL " + src + ".")
+			c.String(http.StatusInternalServerError, fmt.Sprintf("url parse err"))
+			return
+		}
+
+		if u.Scheme == "file" {
+			log.Println("[LOGSERVER-Info] Attempting to download log from " + u.Path + ".")
+
+			// Validate that the log exists.
+			//path := u.Path + "/" + fileName
+			path := filepath.Join(u.Path, fileName)
+
+			var info os.FileInfo
+			if info, err = os.Stat(path); os.IsNotExist(err) {
+				c.String(http.StatusNotFound, fmt.Sprintf("unable to download log %s", path))
+				return
+			}
+			len := info.Size()
+			sLen := strconv.FormatInt(len, 10)
+
+			c.Header("Content-Description", "File Transfer")
+			c.Header("Content-Transfer-Encoding", "binary")
+			c.Header("Content-Disposition", "attachment; filename="+fileName)
+			c.Header("Content-Type", "application/octet-stream")
+			c.Header("Content-Length", sLen)
+
+			c.File(path)
+
+			c.String(http.StatusOK, fmt.Sprintf("File %s downloaded successfully.", fileName))
+		} else if u.Scheme == "http" {
+			log.Println("[LOGSERVER-Info] Downloading log from " + u.Path + ".")
+			// Todo: retrieve logs from HTTP server.
+			c.String(http.StatusUnsupportedMediaType, fmt.Sprintf("url not supported"))
+		} else {
+			log.Println("[LOGSERVER-Error] Unsupported source URL " + src + ".")
+			c.String(http.StatusInternalServerError, fmt.Sprintf("url not supported"))
+		}
+	})
+
+	// Handler for REST API, http://<ip_address>:<port>/index. Web UI.
 	router.LoadHTMLGlob("templates/*")
 	router.GET("/index", func(c *gin.Context) {
 		dst := viper.GetString("destination")
@@ -267,5 +326,15 @@ func main() {
 
 	// Extract port from viper configuration.
 	port := ":" + viper.GetString("port")
-	router.Run(port)
+
+	// Start the server.
+	//router.Run(port)
+	s := &http.Server{
+		Addr:           port,
+		Handler:        router,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+	s.ListenAndServe()
 }
