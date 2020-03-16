@@ -20,29 +20,29 @@ follow these instructions:
 1. Download the source code from the Github repository.
 2. Set the GOPATH to the downloaded source code directory:
 
-```
-$ cd <project>
-$ export GOPATH=`pwd`
-```
+        ```
+        $ cd <project>
+        $ export GOPATH=`pwd`
+        ```
 
 3. Install the Go gin package:
 
-```
-$ go get -u github.com/gin-gonic/gin
-```
+        ```
+        $ go get -u github.com/gin-gonic/gin
+        ```
 
 4. Install the Go viper package:
 
-```
-$ go get -u github.com/spf13/viper
-```
+        ```
+        $ go get -u github.com/spf13/viper
+        ```
 
 5. Build the source:
 
-```
-$ cd src
-$ go build -o logserver
-```
+        ```
+        $ cd src
+        $ go build -o logserver
+        ```
 
 The executable, *logserver*, will be created.
 
