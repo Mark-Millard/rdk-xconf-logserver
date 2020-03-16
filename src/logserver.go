@@ -153,6 +153,7 @@ func upload(context *gin.Context, file *multipart.FileHeader) error {
 // one that is being downloaded from the log server.
 type LogDownloadEntry struct {
 	Name string      // The name of the log.
+	Path string      // The URL for the log.
 	File os.FileInfo // A reference to the downloaded file.
 }
 
@@ -180,7 +181,7 @@ func getLogs(src string) ([]LogDownloadEntry, error) {
 
 		for _, f := range files {
 			log.Println("[LOGSERVER-Info] Found log file " + f.Name() + ".")
-			entry := LogDownloadEntry{Name: f.Name(), File: f}
+			entry := LogDownloadEntry{Name: f.Name(), Path: u.Path, File: f}
 			logs = append(logs, entry)
 		}
 
@@ -312,11 +313,7 @@ func main() {
 		}
 
 		// Build up a list of log names for the template.
-		entries := []string{}
-		for _, f := range logs {
-			entry := dst + "/" + f.Name
-			entries = append(entries, entry)
-		}
+		entries := logs
 
 		c.HTML(http.StatusOK, "index.tmpl", gin.H{
 			"title":   "Alticast Log Server",
