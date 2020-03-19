@@ -199,7 +199,7 @@ func getLogs(src string) ([]LogDownloadEntry, error) {
 func main() {
 	// Initialize configuration.
 	// Set default to save logs to the local file system.
-	viper.SetDefault("destination", "file:///var/log/logserver")
+	viper.SetDefault("destination", "file:///opt/logserver")
 	viper.SetDefault("encode", false)
 	viper.SetDefault("port", 8080)
 
@@ -210,6 +210,14 @@ func main() {
 
 	// Todo: configure server logging. Currently, all server output is directed
 	// towards the Go "log" package via log.Println().
+
+	log.Print("[LOGSERVER-info] Server Configuration\n")
+	log.Printf("\tLog Destination: %s\n", viper.GetString("destination"))
+	log.Printf("\tEncoding: %t\n", viper.GetBool("encode"))
+	log.Printf("\tServer Port: %d", viper.GetInt("port"))
+
+	// Validate the destination for the logs.
+	err := validateDestination(viper.GetString("destination"))
 
 	// Initialize gin HTTP server.
 	router := gin.Default()
