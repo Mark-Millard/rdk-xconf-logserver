@@ -70,3 +70,15 @@ defaults:
 * Destination URL: file:///opt/logserver
 * Encoding: false
 * Server Port: 8080
+
+## Examples
+
+To upload a file to the logserver, you can use curl:
+
+```
+curl -X POST http://localhost:8080/upload -F "file=@<file_path>" -H "Content-Type: multipart/form-data"
+
+For example:
+
+curl -X POST http://localhost:8080/upload -F "file=@/home/msm/tmp/crashdemo_ips.txt" -H "Content-Type: multipart/form-data"
+```
