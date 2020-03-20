@@ -75,7 +75,7 @@ defaults:
 
 ### Upload a Log to the Server
 
-To upload a file to the logserver, you can use curl:
+To upload a file to the logserver, you can use the following curl command:
 
 ```
 $ curl -X POST http://localhost:8080/upload -F "file=@<file_path>" -H "Content-Type: multipart/form-data"
@@ -86,14 +86,22 @@ $ curl -X POST http://localhost:8080/upload -F "file=@/home/msm/tmp/logserverTes
 ```
 ### Download a Log from the Server
 
-TBD
+To download a file from the logserver, you can use the following curl command:
+
+```
+$ curl -X GET http://localhost:8080/download?name=<file_name>
+
+For example:
+
+$ curl -X GET http://localhost:8080/download?name=logserverTest_v1.txt
+```
 
 ### Delete a Log on the Server
 
-To delete a file from the logserver, you can use curl:
+To delete a file from the logserver, you can use the following curl command:
 
 ```
-curl -X DELETE http://localhost:8080/logs/<file_name>
+$ curl -X DELETE http://localhost:8080/logs/<file_name>
 
 For example:
 

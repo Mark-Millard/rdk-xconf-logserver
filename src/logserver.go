@@ -403,7 +403,7 @@ func main() {
 		entries := logs
 
 		c.HTML(http.StatusOK, "index.tmpl", gin.H{
-			"title":   "Alticast Log Server",
+			"title":   "Alticast Xconf Log Server",
 			"loglist": entries,
 		})
 	})

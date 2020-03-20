@@ -1,23 +1,36 @@
+<!DOCTYPE html>
 <html>
-  <h1>
-    {{ .title }}
-  </h1>
-  <p>
-  This site may be used to download RDK logs that have been uploaded via the RDK Xconf Server.
-  </p>
-  <h2>Logs</h2>
-  <p>The following logs are available for download:</p>
-  <ul>
-    {{ range .loglist }}
-        <li> {{ .Name }} <a href="/download?name={{ .Name }}">[download]</a></li>
-    {{end}}
-  </ul>
-  <h2>Contact Information</h2>
-  <p>
-  For additional information concerning this server, please contact <i>Alticast, Inc.</i> at<br><br>
-  <b>Mark Millard</b>, <a href="mailto:mmillard@alticast.com">mmillard@alticast.com</a><br>
-  Alticast, Inc.<br>
-  370 Interlocken Blvd, Suite 120, Broomfield, CO 80021<br>
-  <a href=http://www.alticast.com>www.alticast.com</a>
-  </p>
+  <head>
+    <title>Xconf Log Server</title>
+  </head>
+  <body>
+    <header>
+        <img src="/images/logo.png" alt="Alticast Logo">
+        <h1>{{ .title }}</h1>
+        <hr>
+    </header>
+    <p>
+    This site may be used to download RDK logs that have been uploaded via the RDK Xconf Server.
+    </p>
+    <h2>Logs</h2>
+    <p>The following logs are available for download:</p>
+    <ul>
+      {{ range .loglist }}
+        <li> {{ .Name }} <a href="/download?name={{ .Name }}">[download]</li>
+      {{end}}
+    </ul>
+    <h2>Contact Information</h2>
+    <p>
+    For additional information concerning this server, please contact <i>Alticast, Inc.</i> at<br><br>
+    Alticast, Inc.<br>
+    370 Interlocken Blvd, Suite 120, Broomfield, CO 80021<br>
+    <a href=http://www.alticast.com>www.alticast.com</a>
+    </p>
+    <footer>
+      <hr>
+      <p>Support: Mark Millard, <a href="mailto:mmillard@alticast.com">mmillard@alticast.com</a><br><br>
+      &copy; Copyright 2020 Alticast, Inc. All rights reserved.
+      </p>
+    </footer>
+  </body>
 </html>
