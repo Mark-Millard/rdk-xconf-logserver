@@ -108,6 +108,37 @@ func saveLog(data []byte, fileName string) error {
 	return nil
 }
 
+// Delete the specified file.
+func deleteLog(fileName string) error {
+	// Retrieve destination from logserver configuration.
+	dst := viper.GetString("Destination")
+	log.Println("[LOGSERVER-Info] Deleting log from " + dst + ".")
+
+	// The expectation is that the desination is specified as a formal URL.
+	u, err := url.Parse(dst)
+	if err != nil {
+		log.Println("[LOGSERVER-Error] Unable to parse destination URL " + dst + ".")
+		return err
+	}
+
+	if u.Scheme == "file" {
+		fullPath := filepath.Join(u.Path, fileName)
+
+		if err = os.Remove(fullPath); err != nil {
+			log.Println("[LOGSERVER-Error] Unable to delete log from " + u.Path + ".")
+			return err
+		}
+	} else if u.Scheme == "http" {
+		log.Println("[LOGSERVER-Info] Uploading log to " + u.Path + ".")
+		// Todo: upload file to HTTP server.
+	} else {
+		log.Println("[LOGSERVER-Error] Unsupported destination URL " + dst + ".")
+		return errors.New("unable to upload file")
+	}
+
+	return nil
+}
+
 // Upload the file.
 func upload(context *gin.Context, file *multipart.FileHeader) error {
 	// Open the file for
@@ -223,14 +254,14 @@ func main() {
 	//router.MaxMultipartMemory = 8 << 20 // 8 MiB
 	//router.Static("/", "./public")
 
-	// Handler for REST API, http://<ip_address>:<port>/ping.
+	// Handler for GET REST API, http://<ip_address>:<port>/ping.
 	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
 		})
 	})
 
-	// Handler for REST API, http://<ip_address>:<port>/upload.
+	// Handler for POST REST API, http://<ip_address>:<port>/upload.
 	router.POST("/upload", func(c *gin.Context) {
 		name := c.PostForm("name")
 		email := c.PostForm("email")
@@ -252,13 +283,13 @@ func main() {
 		c.String(http.StatusOK, fmt.Sprintf("File %s uploaded successfully with fields name=%s and email=%s.", file.Filename, name, email))
 	})
 
-	// Handler for REST API, http://<ip_address>:<port>/download.
+	// Handler for GET REST API, http://<ip_address>:<port>/download.
 	router.GET("/download", func(c *gin.Context) {
 		log.Println("[LOGSERVER-Info] In download handler.")
 
 		fileName := c.Query("name")
 		if fileName == "" {
-			log.Println("[LOGSERVER-Error] query key name was not provided.")
+			log.Println("[LOGSERVER-Error] Query key name was not provided.")
 			c.String(http.StatusBadRequest, fmt.Sprintf("query err: %s key required", "name"))
 			return
 		}
@@ -298,6 +329,56 @@ func main() {
 			c.String(http.StatusOK, fmt.Sprintf("File %s downloaded successfully.", fileName))
 		} else if u.Scheme == "http" {
 			log.Println("[LOGSERVER-Info] Downloading log from " + u.Path + ".")
+			// Todo: retrieve logs from HTTP server.
+			c.String(http.StatusUnsupportedMediaType, fmt.Sprintf("url not supported"))
+		} else {
+			log.Println("[LOGSERVER-Error] Unsupported source URL " + src + ".")
+			c.String(http.StatusInternalServerError, fmt.Sprintf("url not supported"))
+		}
+	})
+
+	// Handler for DELETE REST API, http://<ip_address>:<port>/logs.
+	router.DELETE("/logs/:name", func(c *gin.Context) {
+		log.Println("[LOGSERVER-Info] In delete handler.")
+
+		fileName := c.Params.ByName("name")
+		if fileName == "" {
+			log.Println("[LOGSERVER-Error] Log key name was not provided.")
+			c.String(http.StatusBadRequest, fmt.Sprintf("delete err: %s key required", "name"))
+			return
+		}
+
+		src := viper.GetString("Destination")
+		// The expectation is that the source is specified as a formal URL.
+		u, err := url.Parse(src)
+		if err != nil {
+			log.Println("[LOGSERVER-Error] Unable to parse source URL " + src + ".")
+			c.String(http.StatusInternalServerError, fmt.Sprintf("url parse err"))
+			return
+		}
+
+		if u.Scheme == "file" {
+			log.Println("[LOGSERVER-Info] Attempting to delete log from " + u.Path + ".")
+
+			// Validate that the log exists.
+			//path := u.Path + "/" + fileName
+			path := filepath.Join(u.Path, fileName)
+
+			if _, err = os.Stat(path); os.IsNotExist(err) {
+				log.Println("[LOGSERVER-Error] Log does not exist.")
+				c.String(http.StatusNotFound, fmt.Sprintf("unable to delete log %s", path))
+				return
+			}
+
+			if err = deleteLog(fileName); err != nil {
+				log.Println("[LOGSERVER-Error] Unable to delete log.")
+				c.String(http.StatusNotFound, fmt.Sprintf("unable to delete log %s", path))
+				return
+			}
+
+			c.String(http.StatusOK, fmt.Sprintf("File %s deleted successfully.", fileName))
+		} else if u.Scheme == "http" {
+			log.Println("[LOGSERVER-Info] Deleting log from " + u.Path + ".")
 			// Todo: retrieve logs from HTTP server.
 			c.String(http.StatusUnsupportedMediaType, fmt.Sprintf("url not supported"))
 		} else {
