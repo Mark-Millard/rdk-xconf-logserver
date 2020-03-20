@@ -61,13 +61,13 @@ The JSON message **{"message":"pong"}** will be returned upon success.
 ## Configuration
 
 The Alticast logserver uses a ***config.yml*** file to configure its behavior.
-The configuration file may be located in either the */etc/logserver* or
-*$HOME/.logserver* directory.
+The configuration file may be located in either the */etc/logserver*, */opt/logserver/config*,
+or *$HOME/.logserver* directory.
 
 If the configuration file is not accessible, then the logserver will use the following
 defaults:
 
-* Destination URL: file:///opt/logserver
+* Destination URL: file:///opt/logserver/logs
 * Encoding: false
 * Server Port: 8080
 

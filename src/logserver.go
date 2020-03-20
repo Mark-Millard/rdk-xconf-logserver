@@ -94,7 +94,7 @@ func saveLog(data []byte, fileName string) error {
 
 	if u.Scheme == "file" {
 		if err = saveLogToDirectory(data, u.Path, fileName); err != nil {
-			fmt.Println("[LOGSERVER-Error] Unable to save log to " + u.Path + ".")
+			log.Println("[LOGSERVER-Error] Unable to save log to " + u.Path + ".")
 			return err
 		}
 	} else if u.Scheme == "http" {
@@ -113,7 +113,6 @@ func upload(context *gin.Context, file *multipart.FileHeader) error {
 	// Open the file for
 	src, err := file.Open()
 	if err != nil {
-		context.String(http.StatusBadRequest, fmt.Sprintf("upload file err: %s", err.Error()))
 		return err
 	}
 	defer src.Close()
@@ -121,7 +120,6 @@ func upload(context *gin.Context, file *multipart.FileHeader) error {
 	// Read file into buffer.
 	buf := bytes.NewBuffer(nil)
 	if _, err = io.Copy(buf, src); err != nil {
-		context.String(http.StatusBadRequest, fmt.Sprintf("upload file err: %s", err.Error()))
 		return err
 	}
 
@@ -131,7 +129,6 @@ func upload(context *gin.Context, file *multipart.FileHeader) error {
 	if useEncode {
 		sEnc := encode(buf)
 		if sEnc == "" {
-			context.String(http.StatusBadRequest, fmt.Sprintf("upload file err: %s", "unable to encode file"))
 			return errors.New("unable to encode file")
 		}
 		content = []byte(sEnc)
@@ -142,7 +139,6 @@ func upload(context *gin.Context, file *multipart.FileHeader) error {
 	// Send encoded buffer to output URL (specified in config file)
 	filename := filepath.Base(file.Filename)
 	if err = saveLog(content, filename); err != nil {
-		context.String(http.StatusBadRequest, fmt.Sprintf("upload file err: %s", err.Error()))
 		return err
 	}
 
@@ -199,12 +195,13 @@ func getLogs(src string) ([]LogDownloadEntry, error) {
 func main() {
 	// Initialize configuration.
 	// Set default to save logs to the local file system.
-	viper.SetDefault("destination", "file:///opt/logserver")
+	viper.SetDefault("destination", "file:///opt/logserver/logs")
 	viper.SetDefault("encode", false)
 	viper.SetDefault("port", 8080)
 
 	viper.SetConfigName("config")
 	viper.AddConfigPath("/etc/logserver")
+	viper.AddConfigPath("/opt/logserver/config")
 	viper.AddConfigPath("$HOME/.logserver")
 	viper.ReadInConfig()
 
@@ -217,7 +214,7 @@ func main() {
 	log.Printf("\tServer Port: %d", viper.GetInt("port"))
 
 	// Validate the destination for the logs.
-	err := validateDestination(viper.GetString("destination"))
+	//err := validateDestination(viper.GetString("destination"))
 
 	// Initialize gin HTTP server.
 	router := gin.Default()
@@ -248,6 +245,7 @@ func main() {
 		// Upload the file.
 		err = upload(c, file)
 		if err != nil {
+			c.String(http.StatusBadRequest, fmt.Sprintf("unable to upload file: %s", err.Error()))
 			return
 		}
 
