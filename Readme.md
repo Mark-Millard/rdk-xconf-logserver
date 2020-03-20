@@ -71,29 +71,38 @@ defaults:
 * Encoding: false
 * Server Port: 8080
 
-## Examples
+## Web User Interface
+
+The logserver provides a simple Web UI. Type the following into a browser:
+
+```
+http://<server_ip_address>:8080/index
+```
+Where *<server_ip_address>* is the IP Address for the logserver.
+
+## REST API Examples
 
 ### Upload a Log to the Server
 
 To upload a file to the logserver, you can use the following curl command:
 
 ```
-$ curl -X POST http://localhost:8080/upload -F "file=@<file_path>" -H "Content-Type: multipart/form-data"
+$ curl -X POST http://localhost:8080/logs/upload -F "file=@<file_path>" -H "Content-Type: multipart/form-data"
 
 For example:
 
-$ curl -X POST http://localhost:8080/upload -F "file=@/home/msm/tmp/logserverTest_v1.txt" -H "Content-Type: multipart/form-data"
+$ curl -X POST http://localhost:8080/logs/upload -F "file=@/home/msm/tmp/logserverTest_v1.txt" -H "Content-Type: multipart/form-data"
 ```
 ### Download a Log from the Server
 
 To download a file from the logserver, you can use the following curl command:
 
 ```
-$ curl -X GET http://localhost:8080/download?name=<file_name>
+$ curl -X GET http://localhost:8080/logs/download?name=<file_name>
 
 For example:
 
-$ curl -X GET http://localhost:8080/download?name=logserverTest_v1.txt
+$ curl -X GET http://localhost:8080/logs/download?name=logserverTest_v1.txt
 ```
 
 ### Delete a Log on the Server

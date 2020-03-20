@@ -262,7 +262,7 @@ func main() {
 	})
 
 	// Handler for POST REST API, http://<ip_address>:<port>/upload.
-	router.POST("/upload", func(c *gin.Context) {
+	router.POST("/logs/upload", func(c *gin.Context) {
 		name := c.PostForm("name")
 		email := c.PostForm("email")
 
@@ -284,7 +284,7 @@ func main() {
 	})
 
 	// Handler for GET REST API, http://<ip_address>:<port>/download.
-	router.GET("/download", func(c *gin.Context) {
+	router.GET("/logs/download", func(c *gin.Context) {
 		log.Println("[LOGSERVER-Info] In download handler.")
 
 		fileName := c.Query("name")

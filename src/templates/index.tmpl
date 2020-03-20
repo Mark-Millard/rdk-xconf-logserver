@@ -16,7 +16,7 @@
     <p>The following logs are available for download:</p>
     <ul>
       {{ range .loglist }}
-        <li> {{ .Name }} <a href="/download?name={{ .Name }}">[download]</li>
+        <li> {{ .Name }} <a href="/logs/download?name={{ .Name }}">[download]</a></li>
       {{end}}
     </ul>
     <h2>Contact Information</h2>
