@@ -266,8 +266,8 @@ func main() {
 		name := c.PostForm("name")
 		email := c.PostForm("email")
 
-		// Retrieve the file from the field "file".
-		file, err := c.FormFile("file")
+		// Retrieve the file from the field "filename".
+		file, err := c.FormFile("filename")
 		if err != nil {
 			c.String(http.StatusBadRequest, fmt.Sprintf("get form err: %s", err.Error()))
 			return
