@@ -25,14 +25,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// LogUploadEntry provides information for a log asset,
-// one that is being uploaded to the log server.
-type LogUploadEntry struct {
-	name  string // The name of the source (i.e. author)
-	email string // An email address for ths source
-	data  string // The encoded base64 contents of the file to upload
-}
-
 // Encode the file as base64 string.
 func encode(buf *bytes.Buffer) string {
 	sEnc := b64.StdEncoding.EncodeToString(buf.Bytes())
