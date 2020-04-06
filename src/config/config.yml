@@ -1,5 +1,13 @@
-destination: "file:///home/msm/tmp/logserver"
-encode: true
+# Configuration file for Alticast Xconf Log Server.
 
-server:
-    port: 8008
+# Alticast Xconf Log Server configuration.
+logserver:
+    port: 8080
+    destination: "file:///opt/logserver/logs"
+    encode: false
+
+# Cassandra DB configuration.
+cassandra:
+    hosts: [
+        "172.18.0.2"
+    ]

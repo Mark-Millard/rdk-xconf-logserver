@@ -74,7 +74,7 @@ func saveLogToDirectory(data []byte, dirName string, fileName string) error {
 // Save the log encapsulated in the 'data' byte array.
 func saveLog(data []byte, fileName string) error {
 	// Retrieve destination from logserver configuration.
-	dst := viper.GetString("Destination")
+	dst := viper.GetString("logserver.destination")
 	log.Println("[LOGSERVER-Info] Saving log to " + dst + ".")
 
 	// The expectation is that the desination is specified as a formal URL.
@@ -103,7 +103,7 @@ func saveLog(data []byte, fileName string) error {
 // Delete the specified file.
 func deleteLog(fileName string) error {
 	// Retrieve destination from logserver configuration.
-	dst := viper.GetString("Destination")
+	dst := viper.GetString("logserver.destination")
 	log.Println("[LOGSERVER-Info] Deleting log from " + dst + ".")
 
 	// The expectation is that the desination is specified as a formal URL.
@@ -147,7 +147,7 @@ func upload(context *gin.Context, file *multipart.FileHeader) error {
 	}
 
 	// Encode file into base64.
-	useEncode := viper.GetBool("encode")
+	useEncode := viper.GetBool("logserver.encode")
 	var content []byte
 	if useEncode {
 		sEnc := encode(buf)
@@ -218,9 +218,9 @@ func getLogs(src string) ([]LogDownloadEntry, error) {
 func main() {
 	// Initialize configuration.
 	// Set default to save logs to the local file system.
-	viper.SetDefault("destination", "file:///opt/logserver/logs")
-	viper.SetDefault("encode", false)
-	viper.SetDefault("port", 8080)
+	viper.SetDefault("logserver.destination", "file:///opt/logserver/logs")
+	viper.SetDefault("logserver.encode", false)
+	viper.SetDefault("logserver.port", 8080)
 
 	viper.SetConfigName("config")
 	viper.AddConfigPath("/etc/logserver")
@@ -232,12 +232,12 @@ func main() {
 	// towards the Go "log" package via log.Println().
 
 	log.Print("[LOGSERVER-info] Server Configuration\n")
-	log.Printf("\tLog Destination: %s\n", viper.GetString("destination"))
-	log.Printf("\tEncoding: %t\n", viper.GetBool("encode"))
-	log.Printf("\tServer Port: %d", viper.GetInt("port"))
+	log.Printf("\tLog Destination: %s\n", viper.GetString("logserver.destination"))
+	log.Printf("\tEncoding: %t\n", viper.GetBool("logserver.encode"))
+	log.Printf("\tServer Port: %d", viper.GetInt("logserver.port"))
 
 	// Validate the destination for the logs.
-	//err := validateDestination(viper.GetString("destination"))
+	//err := validateDestination(viper.GetString("logserver.destination"))
 
 	// Initialize gin HTTP server.
 	router := gin.Default()
@@ -286,7 +286,7 @@ func main() {
 			return
 		}
 
-		src := viper.GetString("Destination")
+		src := viper.GetString("logserver.destination")
 		// The expectation is that the source is specified as a formal URL.
 		u, err := url.Parse(src)
 		if err != nil {
@@ -340,7 +340,7 @@ func main() {
 			return
 		}
 
-		src := viper.GetString("Destination")
+		src := viper.GetString("logserver.destination")
 		// The expectation is that the source is specified as a formal URL.
 		u, err := url.Parse(src)
 		if err != nil {
@@ -382,7 +382,7 @@ func main() {
 	// Handler for REST API, http://<ip_address>:<port>/index. Web UI.
 	router.LoadHTMLGlob("templates/*")
 	router.GET("/index", func(c *gin.Context) {
-		dst := viper.GetString("destination")
+		dst := viper.GetString("logserver.destination")
 
 		// Retrieve the logs from the configured destination.
 		logs, err := getLogs(dst)
@@ -400,8 +400,20 @@ func main() {
 		})
 	})
 
+	// Open Cassandra session.
+	cassandraHosts := viper.GetStringSlice("cassandra.hosts")
+	if len(cassandraHosts) == 0 {
+		log.Println("[LOGSERVER-Info] No cassandra configuration found. Skipping database registration.")
+	} else {
+		// Open a cassandra session.
+		_, err := openSession(cassandraHosts)
+		if err != nil {
+			log.Println("[LOGSERVER-Error]", err)
+		}
+	}
+
 	// Extract port from viper configuration.
-	port := ":" + viper.GetString("port")
+	port := ":" + viper.GetString("logserver.port")
 
 	// Start the server.
 	//router.Run(port)

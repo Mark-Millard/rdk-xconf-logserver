@@ -30,9 +30,17 @@ type LogEntry struct {
 }
 
 // Opens a session with the Cassandra cluster.
-func openSession() (*gocql.Session, error) {
+func openSession(hosts []string) (*gocql.Session, error) {
+	// Validate input arguments.
+	if len(hosts) == 0 {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to open a cassandra session:", err, ".")
+		return nil, err
+	}
+
 	// Connect to the cluster.
-	cluster := gocql.NewCluster("172.18.0.2")
+	//cluster := gocql.NewCluster("172.18.0.2")
+	cluster := gocql.NewCluster(hosts[0])
 	cluster.Keyspace = "LogDataService"
 	cluster.Consistency = gocql.Quorum
 	session, err := cluster.CreateSession()
@@ -44,9 +52,17 @@ func openSession() (*gocql.Session, error) {
 }
 
 // Close the specified session.
-func closeSession(session *gocql.Session) {
-	// Todo: validate session.
+func closeSession(session *gocql.Session) error {
+	// Validate input arguments.
+	if session == nil {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to close a cassandra session:", err, ".")
+		return err
+	}
+
 	session.Close()
+
+	return nil
 }
 
 // Insert the log meta-data to the Cassandra cluster.
