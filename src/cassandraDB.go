@@ -77,11 +77,17 @@ func unregisterLog(session *gocql.Session, entry LogEntry) error {
 	return nil
 }
 
-// ParseDate parses the specified date stamp and returns it as a Time structure.
-func ParseDate(dateStr string) (*time.Time, error) {
+// parseDate parses the specified date stamp and returns it as a Time structure.
+func parseDate(dateStr string) (*time.Time, error) {
 	var date time.Time
 	var str string
 	var err error
+
+	// Validate input arguments.
+	if dateStr == "" {
+		err = errors.New("empty date string")
+		return nil, err
+	}
 
 	// The string to parse is expected to be in the format "mm-dd-yy-HH-MM"
 	// with either "AM" or "PM" following.
@@ -93,11 +99,16 @@ func ParseDate(dateStr string) (*time.Time, error) {
 	} else {
 		err = errors.New("illegal date format")
 		log.Println("[LOGSERVER-Error]", err)
-		return nil, nil
+		return nil, err
 	}
 
 	// Parse out date components.
 	parts := strings.Split(str, "-")
+	if len(parts) != 5 {
+		err = errors.New("illegal date format")
+		log.Println("[LOGSERVER-Error]", err)
+		return nil, nil
+	}
 	month := parts[0]
 	day := parts[1]
 	year := parts[2]
@@ -131,6 +142,7 @@ func ParseDate(dateStr string) (*time.Time, error) {
 		}
 	} else {
 		if HH == 12 {
+			// Assuming 12:00 AM is beginning of the day, not the next.
 			HH = 0
 		}
 	}
@@ -146,11 +158,17 @@ func ParseDate(dateStr string) (*time.Time, error) {
 	return &date, nil
 }
 
-// Parse the specified filename and return the owner and createdDate components.
-func parseFilename(name string) (string, time.Time, error) {
+// parseFilename parses the specified filename and returns the owner and createdDate components.
+func parseFilename(name string) (string, *time.Time, error) {
 	var owner string
 	var createdDate *time.Time
 	var err error
+
+	// Validate input arguments.
+	if name == "" {
+		err = errors.New("empty filename string")
+		return "", nil, err
+	}
 
 	// The string to parse is expected to be in the format "owner_Logs_createdDate.tgz".
 	// For example "B827EBEADCAB_Logs_03-31-20-09-55PM.tgz"
@@ -161,7 +179,7 @@ func parseFilename(name string) (string, time.Time, error) {
 		sDate = strings.TrimSuffix(sDate, filepath.Ext(sDate))
 
 		// Parse the date component.
-		createdDate, err = ParseDate(sDate)
+		createdDate, err = parseDate(sDate)
 		if err != nil {
 			log.Println("[LOGSERVER-Error]", err)
 		}
@@ -170,5 +188,5 @@ func parseFilename(name string) (string, time.Time, error) {
 		log.Println("[LOGSERVER-Error]", err)
 	}
 
-	return owner, *createdDate, err
+	return owner, createdDate, err
 }
