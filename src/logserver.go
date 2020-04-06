@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gocql/gocql"
 	"github.com/spf13/viper"
 )
 
@@ -401,16 +402,20 @@ func main() {
 	})
 
 	// Open Cassandra session.
+	var session *gocql.Session
 	cassandraHosts := viper.GetStringSlice("cassandra.hosts")
 	if len(cassandraHosts) == 0 {
 		log.Println("[LOGSERVER-Info] No cassandra configuration found. Skipping database registration.")
 	} else {
+		var err error
+
 		// Open a cassandra session.
-		_, err := openSession(cassandraHosts)
+		session, err = openSession(cassandraHosts)
 		if err != nil {
 			log.Println("[LOGSERVER-Error]", err)
 		}
 	}
+	defer closeSession(session)
 
 	// Extract port from viper configuration.
 	port := ":" + viper.GetString("logserver.port")

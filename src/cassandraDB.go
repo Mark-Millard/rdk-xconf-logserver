@@ -51,7 +51,7 @@ func openSession(hosts []string) (*gocql.Session, error) {
 	return session, err
 }
 
-// Close the specified session.
+// closeSession will close the specified session.
 func closeSession(session *gocql.Session) error {
 	// Validate input arguments.
 	if session == nil {
@@ -65,7 +65,7 @@ func closeSession(session *gocql.Session) error {
 	return nil
 }
 
-// Insert the log meta-data to the Cassandra cluster.
+// registerLog will insert the log meta-data to the Cassandra cluster.
 func registerLog(session *gocql.Session, entry LogEntry) error {
 	// Todo: validate session.
 
@@ -79,7 +79,7 @@ func registerLog(session *gocql.Session, entry LogEntry) error {
 	return err
 }
 
-// Remove the log meta-data from the Cassandra cluster.
+// unregisterLog removes the log meta-data from the Cassandra cluster.
 func unregisterLog(session *gocql.Session, entry LogEntry) error {
 	// Todo: validate session.
 
