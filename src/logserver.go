@@ -354,7 +354,11 @@ func main() {
 		fileName := c.Query("name")
 		if fileName == "" {
 			log.Println("[LOGSERVER-Error] Query key name was not provided.")
-			c.String(http.StatusBadRequest, fmt.Sprintf("query err: %s key required", "name"))
+			//c.String(http.StatusBadRequest, fmt.Sprintf("Query error: %s key required", "name"))
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "Query error",
+				"reason":  "name key required",
+			})
 			return
 		}
 
@@ -363,7 +367,11 @@ func main() {
 		u, err := url.Parse(src)
 		if err != nil {
 			log.Println("[LOGSERVER-Error] Unable to parse source URL " + src + ".")
-			c.String(http.StatusInternalServerError, fmt.Sprintf("url parse err"))
+			//c.String(http.StatusInternalServerError, fmt.Sprintf("URL parse error"))
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "URL parse error",
+				"reason":  err.Error(),
+			})
 			return
 		}
 
@@ -376,7 +384,11 @@ func main() {
 
 			var info os.FileInfo
 			if info, err = os.Stat(path); os.IsNotExist(err) {
-				c.String(http.StatusNotFound, fmt.Sprintf("unable to download log %s", path))
+				//c.String(http.StatusNotFound, fmt.Sprintf("Download log eror: %s not found", path))
+				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+					"message": "Download log error",
+					"reason":  err.Error(),
+				})
 				return
 			}
 			len := info.Size()
@@ -390,14 +402,26 @@ func main() {
 
 			c.File(path)
 
-			c.String(http.StatusOK, fmt.Sprintf("File %s downloaded successfully.", fileName))
+			//c.String(http.StatusOK, fmt.Sprintf("File %s downloaded successfully.", fileName))
+			c.JSON(http.StatusOK, gin.H{
+				"message": "Download successful",
+				"reason":  "",
+			})
 		} else if u.Scheme == "http" {
 			log.Println("[LOGSERVER-Info] Downloading log from " + u.Path + ".")
-			// Todo: retrieve logs from HTTP server.
-			c.String(http.StatusUnsupportedMediaType, fmt.Sprintf("url not supported"))
+			// Todo: retrieve logs from an HTTP server.
+			//c.String(http.StatusUnsupportedMediaType, fmt.Sprintf("HTTP not supported"))
+			c.AbortWithStatusJSON(http.StatusUnsupportedMediaType, gin.H{
+				"message": "URL parse error",
+				"reason":  "HTTP protocol not supported",
+			})
 		} else {
 			log.Println("[LOGSERVER-Error] Unsupported source URL " + src + ".")
-			c.String(http.StatusInternalServerError, fmt.Sprintf("url not supported"))
+			//c.String(http.StatusInternalServerError, fmt.Sprintf("url not supported"))
+			c.AbortWithStatusJSON(http.StatusUnsupportedMediaType, gin.H{
+				"message": "URL parse error",
+				"reason":  "protocol not supported",
+			})
 		}
 	})
 
