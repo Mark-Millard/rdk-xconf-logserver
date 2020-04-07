@@ -26,6 +26,9 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Declare global variables.
+var gUseCassandra = false
+
 // Encode the file as base64 string.
 func encode(buf *bytes.Buffer) string {
 	sEnc := b64.StdEncoding.EncodeToString(buf.Bytes())
@@ -256,24 +259,92 @@ func main() {
 
 	// Handler for POST REST API, http://<ip_address>:<port>/upload.
 	router.POST("/logs/upload", func(c *gin.Context) {
-		name := c.PostForm("name")
-		email := c.PostForm("email")
+		var status bool = true
+
+		// Retrieve form parameters.
+		contact := c.PostForm("contact")
+		description := c.PostForm("description")
 
 		// Retrieve the file from the field "filename".
 		file, err := c.FormFile("filename")
 		if err != nil {
-			c.String(http.StatusBadRequest, fmt.Sprintf("get form err: %s", err.Error()))
-			return
+			//c.String(http.StatusBadRequest, fmt.Sprintf("GET Form Error: %s", err.Error()))
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message": "GET Form error",
+				"reason":  err.Error(),
+			})
+			status = false
 		}
 
 		// Upload the file.
-		err = upload(c, file)
-		if err != nil {
-			c.String(http.StatusBadRequest, fmt.Sprintf("unable to upload file: %s", err.Error()))
-			return
+		if status {
+			err = upload(c, file)
+			if err != nil {
+				//c.String(http.StatusBadRequest, fmt.Sprintf("Upload file error: %s", err.Error()))
+				c.JSON(http.StatusBadRequest, gin.H{
+					"message": "Upload file error",
+					"reason":  err.Error(),
+				})
+				status = false
+			}
 		}
 
-		c.String(http.StatusOK, fmt.Sprintf("File %s uploaded successfully with fields name=%s and email=%s.", file.Filename, name, email))
+		var entry LogEntry
+		if status {
+			if gUseCassandra {
+				// Update the Cassandra DB if we are using it.
+				entry.fileName = file.Filename
+				entry.location = viper.GetString("logserver.destination")
+				entry.size = file.Size
+				entry.contact = contact
+				entry.description = description
+
+				var owner string
+				var createDate *time.Time
+				owner, createDate, err = parseFilename(entry.fileName)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"message": "Meta-data registration error",
+						"reason":  err.Error(),
+					})
+					status = false
+				} else {
+					entry.owner = owner
+					entry.createDate = *createDate
+				}
+
+				if status {
+					err = registerLog(gSession, &entry)
+					if err != nil {
+						log.Println("[LOGSERVER-Error] Unable to register meta-data for log,", entry.fileName)
+						//c.String(http.StatusOK, fmt.Sprintf("Meta-data registration error: %s", err.Error()))
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"message": "Meta-data registration error",
+							"reason":  err.Error(),
+						})
+						status = false
+					}
+				}
+			}
+		}
+
+		if status {
+			//c.String(http.StatusOK, fmt.Sprintf("File %s uploaded successfully with fields name=%s and email=%s.", file.Filename, name, email))
+			c.JSON(http.StatusOK, gin.H{
+				"message": "Log upload success",
+				"reason":  "",
+				"info": gin.H{
+					"timeID":      entry.timeID,
+					"fileName":    entry.fileName,
+					"location":    entry.location,
+					"size":        entry.size,
+					"owner":       entry.owner,
+					"createDate":  entry.createDate,
+					"contact":     entry.contact,
+					"description": entry.description,
+				},
+			})
+		}
 	})
 
 	// Handler for GET REST API, http://<ip_address>:<port>/download.
@@ -406,6 +477,7 @@ func main() {
 	cassandraHosts := viper.GetStringSlice("cassandra.hosts")
 	if len(cassandraHosts) == 0 {
 		log.Println("[LOGSERVER-Info] No cassandra configuration found. Skipping database registration.")
+		gUseCassandra = false
 	} else {
 		var err error
 
@@ -413,9 +485,14 @@ func main() {
 		session, err = openSession(cassandraHosts)
 		if err != nil {
 			log.Println("[LOGSERVER-Error]", err)
+			return
 		}
+		gUseCassandra = true
+		gSession = session
+
+		// Defer closing the session until the program is ready to exit.
+		defer closeSession(session)
 	}
-	defer closeSession(session)
 
 	// Extract port from viper configuration.
 	port := ":" + viper.GetString("logserver.port")

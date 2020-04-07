@@ -16,13 +16,16 @@ import (
 	"github.com/gocql/gocql"
 )
 
+// Declare global variables.
+var gSession *gocql.Session = nil
+
 // LogEntry provides information for a log asset,
 // one that is being uploaded/downloaded to/from the log server.
 type LogEntry struct {
 	timeID      gocql.UUID // A unique identifier based on a timestamp.
 	fileName    string     // The name of the file.
 	location    string     // The location of the file (i.e. URL).
-	size        uint32     // The size of the file (in MB).
+	size        int64      // The size of the file (in MB).
 	createDate  time.Time  // A date stamp indicating when the file file was created.
 	owner       string     // The owner of the file.
 	contact     string     // Contact information for the file owner.
@@ -66,15 +69,22 @@ func closeSession(session *gocql.Session) error {
 }
 
 // registerLog will insert the log meta-data to the Cassandra cluster.
-func registerLog(session *gocql.Session, entry LogEntry) error {
-	// Todo: validate session.
+func registerLog(session *gocql.Session, entry *LogEntry) error {
+	// Validate input arguments.
+	if session == nil {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to register a log:", err, ".")
+		return err
+	}
 
 	// Insert a log entry.
 	var err error
-	if err = session.Query(`INSERT INTO "LogEntry" (time_id, file_name, location) VALUES (?, ?, ?)`,
-		gocql.TimeUUID(), entry.fileName, entry.location).Exec(); err != nil {
+	uuid := gocql.TimeUUID()
+	if err = session.Query(`INSERT INTO "LogEntry" (time_id, file_name, location, size, contact, description, owner, create_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		uuid, entry.fileName, entry.location, entry.size, entry.contact, entry.description, entry.owner, entry.createDate).Exec(); err != nil {
 		log.Println("[LOGSERVER-Error]", err)
 	}
+	entry.timeID = uuid
 
 	return err
 }
