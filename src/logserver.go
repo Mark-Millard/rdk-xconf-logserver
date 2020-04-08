@@ -347,7 +347,7 @@ func main() {
 		}
 	})
 
-	// Handler for GET REST API, http://<ip_address>:<port>/download.
+	// Handler for GET REST API, http://<ip_address>:<port>/download?name=<file_name>.
 	router.GET("/logs/download", func(c *gin.Context) {
 		log.Println("[LOGSERVER-Info] In download handler.")
 
@@ -425,14 +425,18 @@ func main() {
 		}
 	})
 
-	// Handler for DELETE REST API, http://<ip_address>:<port>/logs.
+	// Handler for DELETE REST API, http://<ip_address>:<port>/logs/<name>.
 	router.DELETE("/logs/:name", func(c *gin.Context) {
 		log.Println("[LOGSERVER-Info] In delete handler.")
 
 		fileName := c.Params.ByName("name")
 		if fileName == "" {
 			log.Println("[LOGSERVER-Error] Log key name was not provided.")
-			c.String(http.StatusBadRequest, fmt.Sprintf("delete err: %s key required", "name"))
+			//c.String(http.StatusBadRequest, fmt.Sprintf("Delete error: %s key required", "name"))
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "Delete error",
+				"reason":  "name key required",
+			})
 			return
 		}
 
@@ -441,7 +445,11 @@ func main() {
 		u, err := url.Parse(src)
 		if err != nil {
 			log.Println("[LOGSERVER-Error] Unable to parse source URL " + src + ".")
-			c.String(http.StatusInternalServerError, fmt.Sprintf("url parse err"))
+			//c.String(http.StatusInternalServerError, fmt.Sprintf("url parse err"))
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "URL parse error",
+				"reason":  err.Error(),
+			})
 			return
 		}
 
@@ -454,24 +462,121 @@ func main() {
 
 			if _, err = os.Stat(path); os.IsNotExist(err) {
 				log.Println("[LOGSERVER-Error] Log does not exist.")
-				c.String(http.StatusNotFound, fmt.Sprintf("unable to delete log %s", path))
+				//c.String(http.StatusNotFound, fmt.Sprintf("unable to delete log %s", path))
+				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+					"message": "Delete error",
+					"reason":  err.Error(),
+				})
 				return
+			}
+
+			if gUseCassandra {
+				// Remove Cassandra data base entry.
+
+				// Retrieve info for named file.
+				var entry LogEntry
+
+				// Unregister the database entry.
+				err = unregisterLog(gSession, &entry)
+				if err != nil {
+					log.Println("[LOGSERVER-Error] Unable to unregister log.")
+					c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+						"message": "Delete error",
+						"reason":  err.Error(),
+					})
+					return
+				}
 			}
 
 			if err = deleteLog(fileName); err != nil {
 				log.Println("[LOGSERVER-Error] Unable to delete log.")
-				c.String(http.StatusNotFound, fmt.Sprintf("unable to delete log %s", path))
+				//c.String(http.StatusNotFound, fmt.Sprintf("unable to delete log %s", path))
+				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+					"message": "Delete error",
+					"reason":  err.Error(),
+				})
 				return
 			}
 
-			c.String(http.StatusOK, fmt.Sprintf("File %s deleted successfully.", fileName))
+			//c.String(http.StatusOK, fmt.Sprintf("File %s deleted successfully.", fileName))
+			c.JSON(http.StatusOK, gin.H{
+				"message": "Delete successful",
+				"reason":  "",
+			})
 		} else if u.Scheme == "http" {
 			log.Println("[LOGSERVER-Info] Deleting log from " + u.Path + ".")
 			// Todo: retrieve logs from HTTP server.
-			c.String(http.StatusUnsupportedMediaType, fmt.Sprintf("url not supported"))
+			//c.String(http.StatusUnsupportedMediaType, fmt.Sprintf("url not supported"))
+			c.AbortWithStatusJSON(http.StatusUnsupportedMediaType, gin.H{
+				"message": "URL parse error",
+				"reason":  "HTTP protocol not supported",
+			})
 		} else {
 			log.Println("[LOGSERVER-Error] Unsupported source URL " + src + ".")
-			c.String(http.StatusInternalServerError, fmt.Sprintf("url not supported"))
+			//c.String(http.StatusUnsupportedMediaType, fmt.Sprintf("url not supported"))
+			c.AbortWithStatusJSON(http.StatusUnsupportedMediaType, gin.H{
+				"message": "URL parse error",
+				"reason":  "protocol not supported",
+			})
+		}
+	})
+
+	// Handler for GET REST API, http://<ip_address>:<port>/logs/info?name=<file_name>.
+	router.GET("/api/v1/logs/info", func(c *gin.Context) {
+		log.Println("[LOGSERVER-Info] In info handler.")
+
+		// Parse filter input.
+		timeID := c.Query("id")
+		fileName := c.Query("file_name")
+		fileSize := c.Query("size")
+		location := c.Query("location")
+		owner := c.Query("owner")
+		createDate := c.Query("create_date")
+		contact := c.Query("contact")
+		description := c.Query("description")
+
+		var err error
+		var filter LogEntry
+
+		// Set filter parameters.
+		var id gocql.UUID
+		id, err = gocql.ParseUUID(timeID)
+		filter.timeID = id
+		filter.fileName = fileName
+		filter.size, err = strconv.ParseInt(fileSize, 10, 64)
+		filter.location = location
+		filter.owner = owner
+		const longForm = "2020-03-31 09:55:00.00"
+		filter.createDate, err = time.Parse(longForm, createDate)
+		filter.contact = contact
+		filter.description = description
+
+		var info []LogEntry
+		info, err = retrieveLogInfo(gSession, &filter)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "Info retrieval error",
+				"reason":  err.Error(),
+			})
+			return
+		}
+
+		numInfo := len(info)
+		for i := 0; i < numInfo; i++ {
+			c.JSON(http.StatusOK, gin.H{
+				"message": "Info retrieval successful",
+				"reason":  "",
+				"info": gin.H{
+					"timeID":      info[i].timeID,
+					"fileName":    info[i].fileName,
+					"location":    info[i].location,
+					"size":        info[i].size,
+					"owner":       info[i].owner,
+					"createDate":  info[i].createDate,
+					"contact":     info[i].contact,
+					"description": info[i].description,
+				},
+			})
 		}
 	})
 

@@ -76,6 +76,11 @@ func registerLog(session *gocql.Session, entry *LogEntry) error {
 		log.Println("[LOGSERVER-Error] Unable to register a log:", err, ".")
 		return err
 	}
+	if entry == nil {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to register a log:", err, ".")
+		return err
+	}
 
 	// Insert a log entry.
 	var err error
@@ -90,14 +95,25 @@ func registerLog(session *gocql.Session, entry *LogEntry) error {
 }
 
 // unregisterLog removes the log meta-data from the Cassandra cluster.
-func unregisterLog(session *gocql.Session, entry LogEntry) error {
-	// Todo: validate session.
+func unregisterLog(session *gocql.Session, entry *LogEntry) error {
+	// Validate input arguments.
+	if session == nil {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to unregister a log:", err, ".")
+		return err
+	}
+	if entry == nil {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to unregister a log:", err, ".")
+		return err
+	}
 
 	// Remove a log entry.
 	var err error
 	if err = session.Query(`DELETE FROM "LogEntry" WHERE time_id = ?`,
 		entry.timeID).Exec(); err != nil {
 		log.Println("[LOGSERVER-Error]", err)
+		return err
 	}
 
 	return nil
@@ -215,4 +231,49 @@ func parseFilename(name string) (string, *time.Time, error) {
 	}
 
 	return owner, createdDate, err
+}
+
+func retrieveLogInfo(session *gocql.Session, filter *LogEntry) ([]LogEntry, error) {
+	// Validate input arguments.
+	if session == nil {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to register a log:", err, ".")
+		return nil, err
+	}
+	if filter == nil {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to register a log:", err, ".")
+		return nil, err
+	}
+
+	// Retrieve a log entry.
+	var id gocql.UUID
+	var fileName string
+	var fileSize int64
+	var owner string
+	var contact string
+	var description string
+	var location string
+	var createDate time.Time
+
+	/* Search for a specific set of records whose 'file_name' column matches the value in the filter*/
+	if err := session.Query(`SELECT time_id, file_name, owner, size, create_date, contact, description, location FROM "LogEntry" WHERE file_name = ? LIMIT 1 ALLOW FILTERING`,
+		filter.fileName).Consistency(gocql.One).Scan(&id, &fileName, &owner, &fileSize, &createDate, &contact, &description, &location); err != nil {
+		log.Println("[LOGSERVER-Error]", err)
+		return nil, err
+	}
+
+	// Populate the return value.
+	size := 1
+	values := make([]LogEntry, size)
+	values[0].timeID = id
+	values[0].fileName = fileName
+	values[0].owner = owner
+	values[0].size = fileSize
+	values[0].createDate = createDate
+	values[0].contact = contact
+	values[0].description = description
+	values[0].location = location
+
+	return values, nil
 }
