@@ -259,8 +259,6 @@ func main() {
 
 	// Handler for POST REST API, http://<ip_address>:<port>/upload.
 	router.POST("/api/v1/logs/upload", func(c *gin.Context) {
-		var status bool = true
-
 		// Retrieve form parameters.
 		contact := c.PostForm("contact")
 		description := c.PostForm("description")
@@ -268,83 +266,71 @@ func main() {
 		// Retrieve the file from the field "filename".
 		file, err := c.FormFile("filename")
 		if err != nil {
-			//c.String(http.StatusBadRequest, fmt.Sprintf("GET Form Error: %s", err.Error()))
-			c.JSON(http.StatusBadRequest, gin.H{
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "GET Form error",
 				"reason":  err.Error(),
 			})
-			status = false
+			return
 		}
 
 		// Upload the file.
-		if status {
-			err = upload(c, file)
-			if err != nil {
-				//c.String(http.StatusBadRequest, fmt.Sprintf("Upload file error: %s", err.Error()))
-				c.JSON(http.StatusBadRequest, gin.H{
-					"message": "Upload file error",
-					"reason":  err.Error(),
-				})
-				status = false
-			}
+		err = upload(c, file)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "Upload file error",
+				"reason":  err.Error(),
+			})
+			return
 		}
 
 		var entry LogEntry
-		if status {
-			if gUseCassandra {
-				// Update the Cassandra DB if we are using it.
-				entry.FileName = file.Filename
-				entry.Location = viper.GetString("logserver.destination")
-				entry.Size = file.Size
-				entry.Contact = contact
-				entry.Description = description
+		if gUseCassandra {
+			// Update the Cassandra DB if we are using it.
+			entry.FileName = file.Filename
+			entry.Location = viper.GetString("logserver.destination")
+			entry.Size = file.Size
+			entry.Contact = contact
+			entry.Description = description
 
-				var owner string
-				var createDate *time.Time
-				owner, createDate, err = parseFilename(entry.FileName)
-				if err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"message": "Meta-data registration error",
-						"reason":  err.Error(),
-					})
-					status = false
-				} else {
-					entry.Owner = owner
-					entry.CreateDate = *createDate
-				}
+			var owner string
+			var createDate *time.Time
+			owner, createDate, err = parseFilename(entry.FileName)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"message": "Meta-data registration error",
+					"reason":  err.Error(),
+				})
+				return
+			} else {
+				entry.Owner = owner
+				entry.CreateDate = *createDate
+			}
 
-				if status {
-					err = registerLog(gSession, &entry)
-					if err != nil {
-						log.Println("[LOGSERVER-Error] Unable to register meta-data for log,", entry.FileName)
-						//c.String(http.StatusOK, fmt.Sprintf("Meta-data registration error: %s", err.Error()))
-						c.JSON(http.StatusInternalServerError, gin.H{
-							"message": "Meta-data registration error",
-							"reason":  err.Error(),
-						})
-						status = false
-					}
-				}
+			err = registerLog(gSession, &entry)
+			if err != nil {
+				log.Println("[LOGSERVER-Error] Unable to register meta-data for log,", entry.FileName)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"message": "Meta-data registration error",
+					"reason":  err.Error(),
+				})
+				return
 			}
 		}
 
-		if status {
-			//c.String(http.StatusOK, fmt.Sprintf("File %s uploaded successfully with fields name=%s and email=%s.", file.Filename, name, email))
-			c.JSON(http.StatusOK, gin.H{
-				"message": "Log upload success",
-				"reason":  "",
-				"info": gin.H{
-					"timeID":      entry.TimeID,
-					"fileName":    entry.FileName,
-					"location":    entry.Location,
-					"size":        entry.Size,
-					"owner":       entry.Owner,
-					"createDate":  entry.CreateDate,
-					"contact":     entry.Contact,
-					"description": entry.Description,
-				},
-			})
+		var interfaceSlice []interface{} = make([]interface{}, 1)
+		interfaceSlice[0] = entry
+
+		type UploadResponse struct {
+			Message string        `json:"message"`
+			Reason  string        `json:"reason"`
+			Reply   []interface{} `json:"info"`
 		}
+		var response UploadResponse
+		response.Message = "Log upload success"
+		response.Reason = ""
+		response.Reply = interfaceSlice
+
+		c.JSON(http.StatusOK, response)
 	})
 
 	// Handler for GET REST API, http://<ip_address>:<port>/download?name=<file_name>.
@@ -354,7 +340,6 @@ func main() {
 		fileName := c.Query("name")
 		if fileName == "" {
 			log.Println("[LOGSERVER-Error] Query key name was not provided.")
-			//c.String(http.StatusBadRequest, fmt.Sprintf("Query error: %s key required", "name"))
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "Query error",
 				"reason":  "name key required",
@@ -367,7 +352,6 @@ func main() {
 		u, err := url.Parse(src)
 		if err != nil {
 			log.Println("[LOGSERVER-Error] Unable to parse source URL " + src + ".")
-			//c.String(http.StatusInternalServerError, fmt.Sprintf("URL parse error"))
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "URL parse error",
 				"reason":  err.Error(),
@@ -384,7 +368,6 @@ func main() {
 
 			var info os.FileInfo
 			if info, err = os.Stat(path); os.IsNotExist(err) {
-				//c.String(http.StatusNotFound, fmt.Sprintf("Download log eror: %s not found", path))
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
 					"message": "Download log error",
 					"reason":  err.Error(),
@@ -402,7 +385,6 @@ func main() {
 
 			c.File(path)
 
-			//c.String(http.StatusOK, fmt.Sprintf("File %s downloaded successfully.", fileName))
 			c.JSON(http.StatusOK, gin.H{
 				"message": "Download successful",
 				"reason":  "",
@@ -410,14 +392,14 @@ func main() {
 		} else if u.Scheme == "http" {
 			log.Println("[LOGSERVER-Info] Downloading log from " + u.Path + ".")
 			// Todo: retrieve logs from an HTTP server.
-			//c.String(http.StatusUnsupportedMediaType, fmt.Sprintf("HTTP not supported"))
+
 			c.AbortWithStatusJSON(http.StatusUnsupportedMediaType, gin.H{
 				"message": "URL parse error",
 				"reason":  "HTTP protocol not supported",
 			})
 		} else {
 			log.Println("[LOGSERVER-Error] Unsupported source URL " + src + ".")
-			//c.String(http.StatusInternalServerError, fmt.Sprintf("url not supported"))
+
 			c.AbortWithStatusJSON(http.StatusUnsupportedMediaType, gin.H{
 				"message": "URL parse error",
 				"reason":  "protocol not supported",
@@ -432,7 +414,7 @@ func main() {
 		fileName := c.Params.ByName("name")
 		if fileName == "" {
 			log.Println("[LOGSERVER-Error] Log key name was not provided.")
-			//c.String(http.StatusBadRequest, fmt.Sprintf("Delete error: %s key required", "name"))
+
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "Delete error",
 				"reason":  "name key required",
@@ -445,7 +427,7 @@ func main() {
 		u, err := url.Parse(src)
 		if err != nil {
 			log.Println("[LOGSERVER-Error] Unable to parse source URL " + src + ".")
-			//c.String(http.StatusInternalServerError, fmt.Sprintf("url parse err"))
+
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "URL parse error",
 				"reason":  err.Error(),
@@ -462,7 +444,7 @@ func main() {
 
 			if _, err = os.Stat(path); os.IsNotExist(err) {
 				log.Println("[LOGSERVER-Error] Log does not exist.")
-				//c.String(http.StatusNotFound, fmt.Sprintf("unable to delete log %s", path))
+
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
 					"message": "Delete error",
 					"reason":  err.Error(),
@@ -501,7 +483,7 @@ func main() {
 
 			if err = deleteLog(fileName); err != nil {
 				log.Println("[LOGSERVER-Error] Unable to delete log.")
-				//c.String(http.StatusNotFound, fmt.Sprintf("unable to delete log %s", path))
+
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
 					"message": "Delete error",
 					"reason":  err.Error(),
@@ -509,7 +491,6 @@ func main() {
 				return
 			}
 
-			//c.String(http.StatusOK, fmt.Sprintf("File %s deleted successfully.", fileName))
 			c.JSON(http.StatusOK, gin.H{
 				"message": "Delete successful",
 				"reason":  "",
@@ -517,14 +498,14 @@ func main() {
 		} else if u.Scheme == "http" {
 			log.Println("[LOGSERVER-Info] Deleting log from " + u.Path + ".")
 			// Todo: retrieve logs from HTTP server.
-			//c.String(http.StatusUnsupportedMediaType, fmt.Sprintf("url not supported"))
+
 			c.AbortWithStatusJSON(http.StatusUnsupportedMediaType, gin.H{
 				"message": "URL parse error",
 				"reason":  "HTTP protocol not supported",
 			})
 		} else {
 			log.Println("[LOGSERVER-Error] Unsupported source URL " + src + ".")
-			//c.String(http.StatusUnsupportedMediaType, fmt.Sprintf("url not supported"))
+
 			c.AbortWithStatusJSON(http.StatusUnsupportedMediaType, gin.H{
 				"message": "URL parse error",
 				"reason":  "protocol not supported",
@@ -572,39 +553,22 @@ func main() {
 			return
 		}
 
-		/*
-			numInfo := len(info)
-			for i := 0; i < numInfo; i++ {
-				c.JSON(http.StatusOK, gin.H{
-					"message": "Info retrieval successful",
-					"reason":  "",
-					"item": gin.H{
-						"index": i,
-						"info": gin.H{
-							"timeID":      info[i].timeID,
-							"fileName":    info[i].fileName,
-							"location":    info[i].location,
-							"size":        info[i].size,
-							"owner":       info[i].owner,
-							"createDate":  info[i].createDate,
-							"contact":     info[i].contact,
-							"description": info[i].description,
-						},
-					},
-				})
-			}
-		*/
 		var interfaceSlice []interface{} = make([]interface{}, len(info))
 		for i, entry := range info {
 			interfaceSlice[i] = entry
 		}
-		/*
-			c.JSON(http.StatusOK, gin.H{
-				"message": "Info retrieval successful",
-				"reason":  "",
-			})
-		*/
-		c.JSON(http.StatusOK, interfaceSlice)
+
+		type InfoResponse struct {
+			Message string        `json:"message"`
+			Reason  string        `json:"reason"`
+			Reply   []interface{} `json:"info"`
+		}
+		var response InfoResponse
+		response.Message = "Info retrieval successful"
+		response.Reason = ""
+		response.Reply = interfaceSlice
+
+		c.JSON(http.StatusOK, response)
 	})
 
 	// Handler for REST API, http://<ip_address>:<port>/index. Web UI.
