@@ -474,10 +474,21 @@ func main() {
 				// Remove Cassandra data base entry.
 
 				// Retrieve info for named file.
-				var entry LogEntry
+				var filter LogEntry
+				filter.FileName = fileName
+
+				var info []LogEntry
+				info, err = retrieveLogInfo(gSession, &filter)
+				if err != nil {
+					c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+						"message": "Info retrieval error",
+						"reason":  err.Error(),
+					})
+					return
+				}
 
 				// Unregister the database entry.
-				err = unregisterLog(gSession, &entry)
+				err = unregisterLog(gSession, &info[0])
 				if err != nil {
 					log.Println("[LOGSERVER-Error] Unable to unregister log.")
 					c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
