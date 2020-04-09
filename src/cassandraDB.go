@@ -22,14 +22,14 @@ var gSession *gocql.Session = nil
 // LogEntry provides information for a log asset,
 // one that is being uploaded/downloaded to/from the log server.
 type LogEntry struct {
-	timeID      gocql.UUID // A unique identifier based on a timestamp.
-	fileName    string     // The name of the file.
-	location    string     // The location of the file (i.e. URL).
-	size        int64      // The size of the file (in MB).
-	createDate  time.Time  // A date stamp indicating when the file file was created.
-	owner       string     // The owner of the file.
-	contact     string     // Contact information for the file owner.
-	description string     // A textual desciption of the file contents.
+	TimeID      gocql.UUID `json:"timeID"`      // A unique identifier based on a timestamp.
+	FileName    string     `json:"fileName"`    // The name of the file.
+	Location    string     `json:"location"`    // The location of the file (i.e. URL).
+	Size        int64      `json:"size"`        // The size of the file (in MB).
+	CreateDate  time.Time  `json:"createDate"`  // A date stamp indicating when the file was created.
+	Owner       string     `json:"owner"`       // The owner of the file.
+	Contact     string     `json:"contact"`     // Contact information for the file owner.
+	Description string     `json:"description"` // A textual desciption of the file contents.
 }
 
 // Opens a session with the Cassandra cluster.
@@ -42,7 +42,6 @@ func openSession(hosts []string) (*gocql.Session, error) {
 	}
 
 	// Connect to the cluster.
-	//cluster := gocql.NewCluster("172.18.0.2")
 	cluster := gocql.NewCluster(hosts[0])
 	cluster.Keyspace = "LogDataService"
 	cluster.Consistency = gocql.Quorum
@@ -86,10 +85,10 @@ func registerLog(session *gocql.Session, entry *LogEntry) error {
 	var err error
 	uuid := gocql.TimeUUID()
 	if err = session.Query(`INSERT INTO "LogEntry" (time_id, file_name, location, size, contact, description, owner, create_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		uuid, entry.fileName, entry.location, entry.size, entry.contact, entry.description, entry.owner, entry.createDate).Exec(); err != nil {
+		uuid, entry.FileName, entry.Location, entry.Size, entry.Contact, entry.Description, entry.Owner, entry.CreateDate).Exec(); err != nil {
 		log.Println("[LOGSERVER-Error]", err)
 	}
-	entry.timeID = uuid
+	entry.TimeID = uuid
 
 	return err
 }
@@ -111,7 +110,7 @@ func unregisterLog(session *gocql.Session, entry *LogEntry) error {
 	// Remove a log entry.
 	var err error
 	if err = session.Query(`DELETE FROM "LogEntry" WHERE time_id = ?`,
-		entry.timeID).Exec(); err != nil {
+		entry.TimeID).Exec(); err != nil {
 		log.Println("[LOGSERVER-Error]", err)
 		return err
 	}
@@ -256,24 +255,35 @@ func retrieveLogInfo(session *gocql.Session, filter *LogEntry) ([]LogEntry, erro
 	var location string
 	var createDate time.Time
 
-	/* Search for a specific set of records whose 'file_name' column matches the value in the filter*/
-	if err := session.Query(`SELECT time_id, file_name, owner, size, create_date, contact, description, location FROM "LogEntry" WHERE file_name = ? LIMIT 1 ALLOW FILTERING`,
-		filter.fileName).Consistency(gocql.One).Scan(&id, &fileName, &owner, &fileSize, &createDate, &contact, &description, &location); err != nil {
+	/* Search for a specific set of records whose 'file_name' column matches the value in the filter */
+	/*
+		if err := session.Query(`SELECT time_id, file_name, owner, size, create_date, contact, description, location FROM "LogEntry" WHERE file_name = ? LIMIT 1 ALLOW FILTERING`,
+			filter.fileName).Consistency(gocql.One).Scan(&id, &fileName, &owner, &fileSize, &createDate, &contact, &description, &location); err != nil {
+			log.Println("[LOGSERVER-Error]", err)
+			return nil, err
+		}
+	*/
+	var values []LogEntry
+	iter := session.Query(`SELECT time_id, file_name, owner, size, create_date, contact, description, location FROM "LogEntry" WHERE file_name = ? ALLOW FILTERING`,
+		filter.FileName).Iter()
+	for iter.Scan(&id, &fileName, &owner, &fileSize, &createDate, &contact, &description, &location) {
+		// Populate the return value.
+		var entry LogEntry
+		entry.TimeID = id
+		entry.FileName = fileName
+		entry.Owner = owner
+		entry.Size = fileSize
+		entry.CreateDate = createDate
+		entry.Contact = contact
+		entry.Description = description
+		entry.Location = location
+
+		values = append(values, entry)
+	}
+	if err := iter.Close(); err != nil {
 		log.Println("[LOGSERVER-Error]", err)
 		return nil, err
 	}
-
-	// Populate the return value.
-	size := 1
-	values := make([]LogEntry, size)
-	values[0].timeID = id
-	values[0].fileName = fileName
-	values[0].owner = owner
-	values[0].size = fileSize
-	values[0].createDate = createDate
-	values[0].contact = contact
-	values[0].description = description
-	values[0].location = location
 
 	return values, nil
 }

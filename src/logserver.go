@@ -293,15 +293,15 @@ func main() {
 		if status {
 			if gUseCassandra {
 				// Update the Cassandra DB if we are using it.
-				entry.fileName = file.Filename
-				entry.location = viper.GetString("logserver.destination")
-				entry.size = file.Size
-				entry.contact = contact
-				entry.description = description
+				entry.FileName = file.Filename
+				entry.Location = viper.GetString("logserver.destination")
+				entry.Size = file.Size
+				entry.Contact = contact
+				entry.Description = description
 
 				var owner string
 				var createDate *time.Time
-				owner, createDate, err = parseFilename(entry.fileName)
+				owner, createDate, err = parseFilename(entry.FileName)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{
 						"message": "Meta-data registration error",
@@ -309,14 +309,14 @@ func main() {
 					})
 					status = false
 				} else {
-					entry.owner = owner
-					entry.createDate = *createDate
+					entry.Owner = owner
+					entry.CreateDate = *createDate
 				}
 
 				if status {
 					err = registerLog(gSession, &entry)
 					if err != nil {
-						log.Println("[LOGSERVER-Error] Unable to register meta-data for log,", entry.fileName)
+						log.Println("[LOGSERVER-Error] Unable to register meta-data for log,", entry.FileName)
 						//c.String(http.StatusOK, fmt.Sprintf("Meta-data registration error: %s", err.Error()))
 						c.JSON(http.StatusInternalServerError, gin.H{
 							"message": "Meta-data registration error",
@@ -334,14 +334,14 @@ func main() {
 				"message": "Log upload success",
 				"reason":  "",
 				"info": gin.H{
-					"timeID":      entry.timeID,
-					"fileName":    entry.fileName,
-					"location":    entry.location,
-					"size":        entry.size,
-					"owner":       entry.owner,
-					"createDate":  entry.createDate,
-					"contact":     entry.contact,
-					"description": entry.description,
+					"timeID":      entry.TimeID,
+					"fileName":    entry.FileName,
+					"location":    entry.Location,
+					"size":        entry.Size,
+					"owner":       entry.Owner,
+					"createDate":  entry.CreateDate,
+					"contact":     entry.Contact,
+					"description": entry.Description,
 				},
 			})
 		}
@@ -541,15 +541,15 @@ func main() {
 		// Set filter parameters.
 		var id gocql.UUID
 		id, err = gocql.ParseUUID(timeID)
-		filter.timeID = id
-		filter.fileName = fileName
-		filter.size, err = strconv.ParseInt(fileSize, 10, 64)
-		filter.location = location
-		filter.owner = owner
+		filter.TimeID = id
+		filter.FileName = fileName
+		filter.Size, err = strconv.ParseInt(fileSize, 10, 64)
+		filter.Location = location
+		filter.Owner = owner
 		const longForm = "2020-03-31 09:55:00.00"
-		filter.createDate, err = time.Parse(longForm, createDate)
-		filter.contact = contact
-		filter.description = description
+		filter.CreateDate, err = time.Parse(longForm, createDate)
+		filter.Contact = contact
+		filter.Description = description
 
 		var info []LogEntry
 		info, err = retrieveLogInfo(gSession, &filter)
@@ -561,23 +561,39 @@ func main() {
 			return
 		}
 
-		numInfo := len(info)
-		for i := 0; i < numInfo; i++ {
+		/*
+			numInfo := len(info)
+			for i := 0; i < numInfo; i++ {
+				c.JSON(http.StatusOK, gin.H{
+					"message": "Info retrieval successful",
+					"reason":  "",
+					"item": gin.H{
+						"index": i,
+						"info": gin.H{
+							"timeID":      info[i].timeID,
+							"fileName":    info[i].fileName,
+							"location":    info[i].location,
+							"size":        info[i].size,
+							"owner":       info[i].owner,
+							"createDate":  info[i].createDate,
+							"contact":     info[i].contact,
+							"description": info[i].description,
+						},
+					},
+				})
+			}
+		*/
+		var interfaceSlice []interface{} = make([]interface{}, len(info))
+		for i, entry := range info {
+			interfaceSlice[i] = entry
+		}
+		/*
 			c.JSON(http.StatusOK, gin.H{
 				"message": "Info retrieval successful",
 				"reason":  "",
-				"info": gin.H{
-					"timeID":      info[i].timeID,
-					"fileName":    info[i].fileName,
-					"location":    info[i].location,
-					"size":        info[i].size,
-					"owner":       info[i].owner,
-					"createDate":  info[i].createDate,
-					"contact":     info[i].contact,
-					"description": info[i].description,
-				},
 			})
-		}
+		*/
+		c.JSON(http.StatusOK, interfaceSlice)
 	})
 
 	// Handler for REST API, http://<ip_address>:<port>/index. Web UI.
