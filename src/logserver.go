@@ -251,14 +251,14 @@ func main() {
 	//router.Static("/", "./public")
 
 	// Handler for GET REST API, http://<ip_address>:<port>/ping.
-	router.GET("/ping", func(c *gin.Context) {
+	router.GET("/api/v1/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
 		})
 	})
 
 	// Handler for POST REST API, http://<ip_address>:<port>/upload.
-	router.POST("/logs/upload", func(c *gin.Context) {
+	router.POST("/api/v1/logs/upload", func(c *gin.Context) {
 		var status bool = true
 
 		// Retrieve form parameters.
@@ -348,7 +348,7 @@ func main() {
 	})
 
 	// Handler for GET REST API, http://<ip_address>:<port>/download?name=<file_name>.
-	router.GET("/logs/download", func(c *gin.Context) {
+	router.GET("/api/v1/logs/download", func(c *gin.Context) {
 		log.Println("[LOGSERVER-Info] In download handler.")
 
 		fileName := c.Query("name")
@@ -426,7 +426,7 @@ func main() {
 	})
 
 	// Handler for DELETE REST API, http://<ip_address>:<port>/logs/<name>.
-	router.DELETE("/logs/:name", func(c *gin.Context) {
+	router.DELETE("/api/v1/logs/:name", func(c *gin.Context) {
 		log.Println("[LOGSERVER-Info] In delete handler.")
 
 		fileName := c.Params.ByName("name")
