@@ -269,11 +269,11 @@ func createQuery(filter *LogEntry) (string, error) {
 	if filter.Size != 0 {
 		var fileSize string = strconv.FormatInt(filter.Size, 10)
 		if firstItem {
-			parts = append(parts, " AND size = '")
-			parts = append(parts, fileSize+"'")
+			parts = append(parts, " AND size = ")
+			parts = append(parts, fileSize)
 		} else {
-			parts = append(parts, " WHERE size = '")
-			parts = append(parts, fileSize+"'")
+			parts = append(parts, " WHERE size = ")
+			parts = append(parts, fileSize)
 			firstItem = true
 		}
 	}
