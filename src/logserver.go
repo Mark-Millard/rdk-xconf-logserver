@@ -257,7 +257,7 @@ func main() {
 		})
 	})
 
-	// Handler for POST REST API, http://<ip_address>:<port>/upload.
+	// Handler for POST REST API, http://<ip_address>:<port>/api/v1/upload.
 	router.POST("/api/v1/logs/upload", func(c *gin.Context) {
 		// Retrieve form parameters.
 		contact := c.PostForm("contact")
@@ -306,6 +306,7 @@ func main() {
 				entry.CreateDate = *createDate
 			}
 
+			// Register the meta-data with the database.
 			err = registerLog(gSession, &entry)
 			if err != nil {
 				log.Println("[LOGSERVER-Error] Unable to register meta-data for log,", entry.FileName)
@@ -333,7 +334,7 @@ func main() {
 		c.JSON(http.StatusOK, response)
 	})
 
-	// Handler for GET REST API, http://<ip_address>:<port>/download?name=<file_name>.
+	// Handler for GET REST API, http://<ip_address>:<port>/api/v1/download?name=<file_name>.
 	router.GET("/api/v1/logs/download", func(c *gin.Context) {
 		log.Println("[LOGSERVER-Info] In download handler.")
 
@@ -407,7 +408,7 @@ func main() {
 		}
 	})
 
-	// Handler for DELETE REST API, http://<ip_address>:<port>/logs/<name>.
+	// Handler for DELETE REST API, http://<ip_address>:<port>/api/v1/logs/<name>.
 	router.DELETE("/api/v1/logs/:name", func(c *gin.Context) {
 		log.Println("[LOGSERVER-Info] In delete handler.")
 
@@ -481,6 +482,7 @@ func main() {
 				}
 			}
 
+			// Delete the log.
 			if err = deleteLog(fileName); err != nil {
 				log.Println("[LOGSERVER-Error] Unable to delete log.")
 
@@ -513,7 +515,7 @@ func main() {
 		}
 	})
 
-	// Handler for GET REST API, http://<ip_address>:<port>/logs/info?name=<file_name>.
+	// Handler for GET REST API, http://<ip_address>:<port>/api/v1/logs/info.
 	router.GET("/api/v1/logs/info", func(c *gin.Context) {
 		log.Println("[LOGSERVER-Info] In info handler.")
 
@@ -538,7 +540,7 @@ func main() {
 		filter.Size, err = strconv.ParseInt(fileSize, 10, 64)
 		filter.Location = location
 		filter.Owner = owner
-		const longForm = "2020-03-31 09:55:00.00"
+		const longForm = "2020-03-31T09:55:00.00"
 		filter.CreateDate, err = time.Parse(longForm, createDate)
 		filter.Contact = contact
 		filter.Description = description

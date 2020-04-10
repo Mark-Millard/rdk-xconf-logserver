@@ -202,7 +202,7 @@ func parseDate(dateStr string) (*time.Time, error) {
 // parseFilename parses the specified filename and returns the owner and createdDate components.
 func parseFilename(name string) (string, *time.Time, error) {
 	var owner string
-	var createdDate *time.Time
+	var createDate *time.Time
 	var err error
 
 	// Validate input arguments.
@@ -220,7 +220,7 @@ func parseFilename(name string) (string, *time.Time, error) {
 		sDate = strings.TrimSuffix(sDate, filepath.Ext(sDate))
 
 		// Parse the date component.
-		createdDate, err = parseDate(sDate)
+		createDate, err = parseDate(sDate)
 		if err != nil {
 			log.Println("[LOGSERVER-Error]", err)
 		}
@@ -229,7 +229,61 @@ func parseFilename(name string) (string, *time.Time, error) {
 		log.Println("[LOGSERVER-Error]", err)
 	}
 
-	return owner, createdDate, err
+	return owner, createDate, err
+}
+
+func createQuery(filter *LogEntry) (string, error) {
+	var query string
+	var parts []string
+	var firstItem bool = false
+
+	parts = make([]string, 0)
+	parts = append(parts, "SELECT time_id, file_name, owner, size, create_date, contact, description, location FROM \"LogEntry\"")
+	if filter.FileName != "" {
+		parts = append(parts, " WHERE file_name = '")
+		parts = append(parts, filter.FileName+"'")
+		firstItem = true
+	}
+	if filter.Owner != "" {
+		if firstItem {
+			parts = append(parts, " AND owner = '")
+			parts = append(parts, filter.Owner+"'")
+		} else {
+			parts = append(parts, " WHERE owner = '")
+			parts = append(parts, filter.Owner+"'")
+			firstItem = true
+		}
+	}
+	if !filter.CreateDate.IsZero() {
+		const longForm = "2020-03-31 09:55:00.00"
+		createDate := filter.CreateDate.Format(longForm)
+		if firstItem {
+			parts = append(parts, " AND create_date = '")
+			parts = append(parts, createDate+"'")
+		} else {
+			parts = append(parts, " WHERE create_date = '")
+			parts = append(parts, createDate+"'")
+			firstItem = true
+		}
+	}
+	if filter.Size != 0 {
+		var fileSize string = strconv.FormatInt(filter.Size, 10)
+		if firstItem {
+			parts = append(parts, " AND size = '")
+			parts = append(parts, fileSize+"'")
+		} else {
+			parts = append(parts, " WHERE size = '")
+			parts = append(parts, fileSize+"'")
+			firstItem = true
+		}
+	}
+	parts = append(parts, " ALLOW FILTERING")
+
+	for _, value := range parts {
+		query = query + value
+	}
+
+	return query, nil
 }
 
 func retrieveLogInfo(session *gocql.Session, filter *LogEntry) ([]LogEntry, error) {
@@ -263,9 +317,13 @@ func retrieveLogInfo(session *gocql.Session, filter *LogEntry) ([]LogEntry, erro
 			return nil, err
 		}
 	*/
+	query, _ := createQuery(filter)
+	log.Println("[LOGSERVER-Info] query:", query)
+
 	var values []LogEntry
-	iter := session.Query(`SELECT time_id, file_name, owner, size, create_date, contact, description, location FROM "LogEntry" WHERE file_name = ? ALLOW FILTERING`,
-		filter.FileName).Iter()
+	//iter := session.Query(`SELECT time_id, file_name, owner, size, create_date, contact, description, location FROM "LogEntry" WHERE file_name = ? ALLOW FILTERING`,
+	//	filter.FileName).Iter()
+	iter := session.Query(query).Iter()
 	for iter.Scan(&id, &fileName, &owner, &fileSize, &createDate, &contact, &description, &location) {
 		// Populate the return value.
 		var entry LogEntry
