@@ -387,7 +387,7 @@ func main() {
 			c.File(path)
 
 			c.JSON(http.StatusOK, gin.H{
-				"message": "Download successful",
+				"message": "Download success",
 				"reason":  "",
 			})
 		} else if u.Scheme == "http" {
@@ -494,7 +494,7 @@ func main() {
 			}
 
 			c.JSON(http.StatusOK, gin.H{
-				"message": "Delete successful",
+				"message": "Delete success",
 				"reason":  "",
 			})
 		} else if u.Scheme == "http" {
@@ -566,7 +566,7 @@ func main() {
 			Reply   []interface{} `json:"info"`
 		}
 		var response InfoResponse
-		response.Message = "Info retrieval successful"
+		response.Message = "Info retrieval success"
 		response.Reason = ""
 		response.Reply = interfaceSlice
 

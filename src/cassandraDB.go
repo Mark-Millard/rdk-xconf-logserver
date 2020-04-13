@@ -109,8 +109,8 @@ func unregisterLog(session *gocql.Session, entry *LogEntry) error {
 
 	// Remove a log entry.
 	var err error
-	if err = session.Query(`DELETE FROM "LogEntry" WHERE time_id = ?`,
-		entry.TimeID).Exec(); err != nil {
+	if err = session.Query(`DELETE FROM "LogEntry" WHERE time_id = ? AND file_name = ?`,
+		entry.TimeID, entry.FileName).Exec(); err != nil {
 		log.Println("[LOGSERVER-Error]", err)
 		return err
 	}
