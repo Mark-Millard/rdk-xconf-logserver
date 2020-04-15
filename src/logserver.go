@@ -533,15 +533,42 @@ func main() {
 		var filter LogEntry
 
 		// Set filter parameters.
-		var id gocql.UUID
-		id, err = gocql.ParseUUID(timeID)
-		filter.TimeID = id
+		if timeID != "" {
+			var id gocql.UUID
+			id, err = gocql.ParseUUID(timeID)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"message": "Info retrieval error",
+					"reason":  err.Error(),
+				})
+				return
+			}
+			filter.TimeID = id
+		}
 		filter.FileName = fileName
-		filter.Size, err = strconv.ParseInt(fileSize, 10, 64)
+		if fileSize != "" {
+			filter.Size, err = strconv.ParseInt(fileSize, 10, 64)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"message": "Info retrieval error",
+					"reason":  err.Error(),
+				})
+				return
+			}
+		}
 		filter.Location = location
 		filter.Owner = owner
-		const longForm = "2020-03-31T09:55:00.00"
-		filter.CreateDate, err = time.Parse(longForm, createDate)
+		if createDate != "" {
+			const longForm = "2020-03-31 09:55:00.00"
+			filter.CreateDate, err = time.Parse(longForm, createDate)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"message": "Info retrieval error",
+					"reason":  err.Error(),
+				})
+				return
+			}
+		}
 		filter.Contact = contact
 		filter.Description = description
 
