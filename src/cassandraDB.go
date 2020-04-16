@@ -255,8 +255,7 @@ func createQuery(filter *LogEntry) (string, error) {
 		}
 	}
 	if !filter.CreateDate.IsZero() {
-		const longForm = "2020-03-31 09:55:00.00"
-		createDate := filter.CreateDate.Format(longForm)
+		createDate := filter.CreateDate.Format(time.RFC3339)
 		if firstItem {
 			parts = append(parts, " AND create_date = '")
 			parts = append(parts, createDate+"'")

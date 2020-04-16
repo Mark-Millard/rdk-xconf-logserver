@@ -561,11 +561,9 @@ func main() {
 		filter.Location = location
 		filter.Owner = owner
 		if createDate != "" {
-			fmt.Println(time.Parse(time.RFC3339,
-				//fmt.Println(time.Parse("2020-03-31_09:55:00",
-				"2012-11-01T22:08:41+00:00"))
-			const longForm = "2020-03-31 09:55:00"
-			filter.CreateDate, err = time.Parse(longForm, createDate)
+			t, _ := time.Parse(time.RFC3339, createDate)
+			log.Printf("[LOGSERVER-Info] createDate = %s", t)
+			filter.CreateDate, err = time.Parse(time.RFC3339, createDate)
 			if err != nil {
 				log.Println("[LOGSERVER-Error] Unable to parse create_data", createDate, ".")
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
