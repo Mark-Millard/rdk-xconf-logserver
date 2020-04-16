@@ -194,7 +194,7 @@ func parseDate(dateStr string) (*time.Time, error) {
 
 	// Translate to Time structure.
 	date = time.Date(
-		yyyy, time.Month(mm), dd, HH, MM, 00, 000, time.Local)
+		yyyy, time.Month(mm), dd, HH, MM, 00, 000, time.UTC)
 
 	return &date, nil
 }
