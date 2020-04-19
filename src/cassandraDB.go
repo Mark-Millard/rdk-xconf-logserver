@@ -84,8 +84,26 @@ func registerLog(session *gocql.Session, entry *LogEntry) error {
 	// Insert a log entry.
 	var err error
 	uuid := gocql.TimeUUID()
-	if err = session.Query(`INSERT INTO "LogEntry" (time_id, file_name, location, size, contact, description, owner, create_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		uuid, entry.FileName, entry.Location, entry.Size, entry.Contact, entry.Description, entry.Owner, entry.CreateDate).Exec(); err != nil {
+	/*
+		if err = session.Query(`INSERT INTO "LogEntry" (time_id, file_name, location, size, contact, description, owner, create_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			uuid, entry.FileName, entry.Location, entry.Size, entry.Contact, entry.Description, entry.Owner, entry.CreateDate).Exec(); err != nil {
+			log.Println("[LOGSERVER-Error]", err)
+		}
+	*/
+	if err = session.Query(`INSERT INTO "LogEntry" (time_id, file_name, location, contact, description) VALUES (?, ?, ?, ?, ?)`,
+		uuid, entry.FileName, entry.Location, entry.Contact, entry.Description).Exec(); err != nil {
+		log.Println("[LOGSERVER-Error]", err)
+	}
+	if err = session.Query(`INSERT INTO "LogOwner" (time_id, owner) VALUES (?, ?)`,
+		uuid, entry.Owner).Exec(); err != nil {
+		log.Println("[LOGSERVER-Error]", err)
+	}
+	if err = session.Query(`INSERT INTO "LogSize" (time_id, size) VALUES (?, ?)`,
+		uuid, entry.Size).Exec(); err != nil {
+		log.Println("[LOGSERVER-Error]", err)
+	}
+	if err = session.Query(`INSERT INTO "LogTimestamp" (time_id, create_date) VALUES (?, ?)`,
+		uuid, entry.CreateDate).Exec(); err != nil {
 		log.Println("[LOGSERVER-Error]", err)
 	}
 	entry.TimeID = uuid
@@ -232,6 +250,7 @@ func parseFilename(name string) (string, *time.Time, error) {
 	return owner, createDate, err
 }
 
+/*
 func createQuery(filter *LogEntry) (string, error) {
 	var query string
 	var parts []string
@@ -284,6 +303,21 @@ func createQuery(filter *LogEntry) (string, error) {
 
 	return query, nil
 }
+*/
+
+func filterIsEmpty(filter *LogEntry) bool {
+	if filter == nil {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Invalid log entry:", err, ".")
+		return false
+	}
+
+	if (filter.FileName == "") && (filter.Owner == "") && (filter.Size < 0) && (filter.CreateDate.IsZero()) {
+		return true
+	}
+
+	return false
+}
 
 func retrieveLogInfo(session *gocql.Session, filter *LogEntry) ([]LogEntry, error) {
 	// Validate input arguments.
@@ -298,47 +332,37 @@ func retrieveLogInfo(session *gocql.Session, filter *LogEntry) ([]LogEntry, erro
 		return nil, err
 	}
 
-	// Retrieve a log entry.
-	var id gocql.UUID
-	var fileName string
-	var fileSize int64
-	var owner string
-	var contact string
-	var description string
-	var location string
-	var createDate time.Time
-
-	/* Search for a specific set of records whose 'file_name' column matches the value in the filter */
-	/*
-		if err := session.Query(`SELECT time_id, file_name, owner, size, create_date, contact, description, location FROM "LogEntry" WHERE file_name = ? LIMIT 1 ALLOW FILTERING`,
-			filter.fileName).Consistency(gocql.One).Scan(&id, &fileName, &owner, &fileSize, &createDate, &contact, &description, &location); err != nil {
+	var values []LogEntry
+	if filterIsEmpty(filter) || filterContainsFilenameOnly(filter) {
+		var err error
+		values, err = processLogEntryQuery(session, filter)
+		if err != nil {
 			log.Println("[LOGSERVER-Error]", err)
 			return nil, err
 		}
-	*/
-	query, _ := createQuery(filter)
-	log.Println("[LOGSERVER-Info] query:", query)
-
-	var values []LogEntry
-	//iter := session.Query(`SELECT time_id, file_name, owner, size, create_date, contact, description, location FROM "LogEntry" WHERE file_name = ? ALLOW FILTERING`,
-	//	filter.FileName).Iter()
-	iter := session.Query(query).Iter()
-	for iter.Scan(&id, &fileName, &owner, &fileSize, &createDate, &contact, &description, &location) {
-		// Populate the return value.
-		var entry LogEntry
-		entry.TimeID = id
-		entry.FileName = fileName
-		entry.Owner = owner
-		entry.Size = fileSize
-		entry.CreateDate = createDate
-		entry.Contact = contact
-		entry.Description = description
-		entry.Location = location
-
-		values = append(values, entry)
-	}
-	if err := iter.Close(); err != nil {
-		log.Println("[LOGSERVER-Error]", err)
+	} else if filterContainsSizeOnly(filter) {
+		var err error
+		values, err = processSizeQuery(session, filter)
+		if err != nil {
+			log.Println("[LOGSERVER-Error]", err)
+			return nil, err
+		}
+	} else if filterContainsOwnerOnly(filter) {
+		var err error
+		values, err = processOwnerQuery(session, filter)
+		if err != nil {
+			log.Println("[LOGSERVER-Error]", err)
+			return nil, err
+		}
+	} else if filterContainsCreateDateOnly(filter) {
+		var err error
+		values, err = processCreateDateQuery(session, filter)
+		if err != nil {
+			log.Println("[LOGSERVER-Error]", err)
+			return nil, err
+		}
+	} else {
+		err := errors.New("filter not supported")
 		return nil, err
 	}
 

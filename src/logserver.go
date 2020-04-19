@@ -557,6 +557,8 @@ func main() {
 				})
 				return
 			}
+		} else {
+			filter.Size = -1
 		}
 		filter.Location = location
 		filter.Owner = owner
