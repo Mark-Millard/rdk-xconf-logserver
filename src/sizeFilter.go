@@ -41,15 +41,26 @@ func createLogSizeQuery(size int64) (string, error) {
 func createLogSizeRangeQuery(lowerBound int64, upperBound int64) (string, error) {
 	var query string
 	var parts []string
+	var lowerSpecified bool = false
 
 	parts = make([]string, 0)
 	parts = append(parts, "SELECT time_id, size FROM \"LogSize\"")
-	var lower string = strconv.FormatInt(lowerBound, 10)
-	parts = append(parts, " WHERE size >= ")
-	parts = append(parts, lower)
-	var upper string = strconv.FormatInt(upperBound, 10)
-	parts = append(parts, " AND size <= ")
-	parts = append(parts, upper)
+	if lowerBound >= 0 {
+		var lower string = strconv.FormatInt(lowerBound, 10)
+		parts = append(parts, " WHERE size >= ")
+		parts = append(parts, lower)
+		lowerSpecified = true
+	}
+	if upperBound >= 0 {
+		var upper string = strconv.FormatInt(upperBound, 10)
+		if lowerSpecified {
+			parts = append(parts, " AND size <= ")
+			parts = append(parts, upper)
+		} else {
+			parts = append(parts, " WHERE size <= ")
+			parts = append(parts, upper)
+		}
+	}
 
 	parts = append(parts, " ALLOW FILTERING")
 
@@ -86,6 +97,21 @@ func filterContainsSizeOnly(filter *LogFilter) bool {
 	}
 
 	if (filter.FileName == "") && (filter.Owner == "") && (filter.SizeLower >= 0) && (filter.SizeUpper >= 0) &&
+		(filter.SizeLower == filter.SizeUpper) && (filter.CreateDateLower.IsZero()) && (filter.CreateDateUpper.IsZero()) {
+		return true
+	}
+
+	return false
+}
+
+func filterContainsSizeRangeOnly(filter *LogFilter) bool {
+	if filter == nil {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		return false
+	}
+
+	if (filter.FileName == "") && (filter.Owner == "") && ((filter.SizeLower >= 0) || (filter.SizeUpper >= 0)) &&
 		(filter.CreateDateLower.IsZero()) && (filter.CreateDateUpper.IsZero()) {
 		return true
 	}
@@ -93,8 +119,26 @@ func filterContainsSizeOnly(filter *LogFilter) bool {
 	return false
 }
 
+func validSizeRange(lowerBound int64, upperBound int64) bool {
+	if (lowerBound >= 0) && (upperBound == -1) {
+		// Special case: only the lower bound is being specified.
+		return true
+	}
+	if (lowerBound == -1) && (upperBound >= 0) {
+		// Special case: only the upper bound is being specified.
+		return true
+	}
+	if (lowerBound < 0) || (upperBound < 0) {
+		return false
+	}
+	if (upperBound < lowerBound) || (lowerBound > upperBound) {
+		return false
+	}
+	return true
+}
+
 func processSizeQuery(session *gocql.Session, lowerBound int64, upperBound int64) ([]LogEntry, error) {
-	if (lowerBound < 0) || (upperBound < 0) || (upperBound < lowerBound) || (lowerBound > upperBound) {
+	if !validSizeRange(lowerBound, upperBound) {
 		err := errors.New("invalid input argument")
 		log.Println("[LOGSERVER-Error] Unable to process size query:", err, ".")
 		return nil, err

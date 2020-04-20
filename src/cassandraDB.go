@@ -362,9 +362,9 @@ func retrieveLogInfo(session *gocql.Session, filter *LogFilter) ([]LogEntry, err
 			log.Println("[LOGSERVER-Error]", err)
 			return nil, err
 		}
-	} else if filterContainsSizeOnly(filter) {
+	} else if filterContainsSizeOnly(filter) || filterContainsSizeRangeOnly(filter) {
 		var err error
-		values, err = processSizeQuery(session, filter.SizeLower, filter.SizeLower)
+		values, err = processSizeQuery(session, filter.SizeLower, filter.SizeUpper)
 		if err != nil {
 			log.Println("[LOGSERVER-Error]", err)
 			return nil, err

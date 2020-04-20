@@ -523,6 +523,8 @@ func main() {
 		timeID := c.Query("id")
 		fileName := c.Query("file_name")
 		fileSize := c.Query("size")
+		sizeLowerBound := c.Query("size.gt")
+		sizeUpperBound := c.Query("size.lt")
 		//location := c.Query("location")
 		owner := c.Query("owner")
 		createDate := c.Query("create_date")
@@ -547,9 +549,33 @@ func main() {
 			filter.TimeID = id
 		}
 		filter.FileName = fileName
+		filter.SizeLower = -1
+		filter.SizeUpper = -1
+		if sizeLowerBound != "" {
+			filter.SizeLower, err = strconv.ParseInt(sizeLowerBound, 10, 64)
+			if err != nil {
+				log.Println("[LOGSERVER-Error] Unable to parse size.gt", sizeLowerBound, ".")
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"message": "Info retrieval error",
+					"reason":  err.Error(),
+				})
+				return
+			}
+		}
+		if sizeUpperBound != "" {
+			filter.SizeUpper, err = strconv.ParseInt(sizeUpperBound, 10, 64)
+			if err != nil {
+				log.Println("[LOGSERVER-Error] Unable to parse size.lt", sizeUpperBound, ".")
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"message": "Info retrieval error",
+					"reason":  err.Error(),
+				})
+				return
+			}
+		}
 		if fileSize != "" {
 			filter.SizeLower, err = strconv.ParseInt(fileSize, 10, 64)
-			filter.SizeUpper = filter.SizeLower // Todo: add range support.
+			filter.SizeUpper = filter.SizeLower
 			if err != nil {
 				log.Println("[LOGSERVER-Error] Unable to parse size", fileSize, ".")
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -558,9 +584,6 @@ func main() {
 				})
 				return
 			}
-		} else {
-			filter.SizeLower = -1
-			filter.SizeUpper = -1
 		}
 		//filter.Location = location
 		filter.Owner = owner
