@@ -38,6 +38,28 @@ func createLogSizeQuery(size int64) (string, error) {
 	return query, nil
 }
 
+func createLogSizeRangeQuery(lowerBound int64, upperBound int64) (string, error) {
+	var query string
+	var parts []string
+
+	parts = make([]string, 0)
+	parts = append(parts, "SELECT time_id, size FROM \"LogSize\"")
+	var lower string = strconv.FormatInt(lowerBound, 10)
+	parts = append(parts, " WHERE size >= ")
+	parts = append(parts, lower)
+	var upper string = strconv.FormatInt(upperBound, 10)
+	parts = append(parts, " AND size <= ")
+	parts = append(parts, upper)
+
+	parts = append(parts, " ALLOW FILTERING")
+
+	for _, value := range parts {
+		query = query + value
+	}
+
+	return query, nil
+}
+
 func createLogSizeQueryForUUID(uuid gocql.UUID) (string, error) {
 	var query string
 	var parts []string
@@ -56,22 +78,23 @@ func createLogSizeQueryForUUID(uuid gocql.UUID) (string, error) {
 	return query, nil
 }
 
-func filterContainsSizeOnly(filter *LogEntry) bool {
+func filterContainsSizeOnly(filter *LogFilter) bool {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Invalid log entry:", err, ".")
+		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
 		return false
 	}
 
-	if (filter.FileName == "") && (filter.Owner == "") && (filter.Size >= 0) && (filter.CreateDate.IsZero()) {
+	if (filter.FileName == "") && (filter.Owner == "") && (filter.SizeLower >= 0) && (filter.SizeUpper >= 0) &&
+		(filter.CreateDateLower.IsZero()) && (filter.CreateDateUpper.IsZero()) {
 		return true
 	}
 
 	return false
 }
 
-func processSizeQuery(session *gocql.Session, filter *LogEntry) ([]LogEntry, error) {
-	if filter == nil {
+func processSizeQuery(session *gocql.Session, lowerBound int64, upperBound int64) ([]LogEntry, error) {
+	if (lowerBound < 0) || (upperBound < 0) || (upperBound < lowerBound) || (lowerBound > upperBound) {
 		err := errors.New("invalid input argument")
 		log.Println("[LOGSERVER-Error] Unable to process size query:", err, ".")
 		return nil, err
@@ -89,7 +112,12 @@ func processSizeQuery(session *gocql.Session, filter *LogEntry) ([]LogEntry, err
 	var createDate time.Time
 
 	// Retrieve values for size meta-data.
-	query, _ := createLogSizeQuery(filter.Size)
+	var query string
+	if lowerBound == upperBound {
+		query, _ = createLogSizeQuery(lowerBound)
+	} else {
+		query, _ = createLogSizeRangeQuery(lowerBound, upperBound)
+	}
 	log.Println("[LOGSERVER-Info] query:", query)
 
 	iter := session.Query(query).Iter()

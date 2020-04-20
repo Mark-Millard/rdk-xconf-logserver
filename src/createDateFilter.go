@@ -55,21 +55,22 @@ func createLogTimestampQueryForUUID(uuid gocql.UUID) (string, error) {
 	return query, nil
 }
 
-func filterContainsCreateDateOnly(filter *LogEntry) bool {
+func filterContainsCreateDateOnly(filter *LogFilter) bool {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Invalid log entry:", err, ".")
+		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
 		return false
 	}
 
-	if (filter.FileName == "") && (filter.Owner == "") && (filter.Size < 0) && (!filter.CreateDate.IsZero()) {
+	if (filter.FileName == "") && (filter.Owner == "") && (filter.SizeLower < 0) && (filter.SizeUpper < 0) &&
+		(!filter.CreateDateLower.IsZero()) && (!filter.CreateDateUpper.IsZero()) {
 		return true
 	}
 
 	return false
 }
 
-func processCreateDateQuery(session *gocql.Session, filter *LogEntry) ([]LogEntry, error) {
+func processCreateDateQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry, error) {
 	if filter == nil {
 		err := errors.New("invalid input argument")
 		log.Println("[LOGSERVER-Error] Unable to process create_date query:", err, ".")
@@ -88,7 +89,7 @@ func processCreateDateQuery(session *gocql.Session, filter *LogEntry) ([]LogEntr
 	var createDate time.Time
 
 	// Retrieve values for owner meta-data.
-	query, _ := createLogTimestampQuery(filter.CreateDate)
+	query, _ := createLogTimestampQuery(filter.CreateDateLower)
 	log.Println("[LOGSERVER-Info] query:", query)
 
 	iter := session.Query(query).Iter()

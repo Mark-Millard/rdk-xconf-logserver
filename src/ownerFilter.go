@@ -54,21 +54,22 @@ func createLogOwnerQueryForUUID(uuid gocql.UUID) (string, error) {
 	return query, nil
 }
 
-func filterContainsOwnerOnly(filter *LogEntry) bool {
+func filterContainsOwnerOnly(filter *LogFilter) bool {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Invalid log entry:", err, ".")
+		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
 		return false
 	}
 
-	if (filter.FileName == "") && (filter.Owner != "") && (filter.Size < 0) && (filter.CreateDate.IsZero()) {
+	if (filter.FileName == "") && (filter.Owner != "") && (filter.SizeLower < 0) && (filter.SizeUpper < 0) &&
+		(filter.CreateDateLower.IsZero()) && (filter.CreateDateUpper.IsZero()) {
 		return true
 	}
 
 	return false
 }
 
-func processOwnerQuery(session *gocql.Session, filter *LogEntry) ([]LogEntry, error) {
+func processOwnerQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry, error) {
 	if filter == nil {
 		err := errors.New("invalid input argument")
 		log.Println("[LOGSERVER-Error] Unable to process owner query:", err, ".")

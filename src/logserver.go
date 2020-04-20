@@ -457,7 +457,7 @@ func main() {
 				// Remove Cassandra data base entry.
 
 				// Retrieve info for named file.
-				var filter LogEntry
+				var filter LogFilter
 				filter.FileName = fileName
 
 				var info []LogEntry
@@ -523,14 +523,14 @@ func main() {
 		timeID := c.Query("id")
 		fileName := c.Query("file_name")
 		fileSize := c.Query("size")
-		location := c.Query("location")
+		//location := c.Query("location")
 		owner := c.Query("owner")
 		createDate := c.Query("create_date")
-		contact := c.Query("contact")
-		description := c.Query("description")
+		//contact := c.Query("contact")
+		//description := c.Query("description")
 
 		var err error
-		var filter LogEntry
+		var filter LogFilter
 
 		// Set filter parameters.
 		if timeID != "" {
@@ -548,7 +548,8 @@ func main() {
 		}
 		filter.FileName = fileName
 		if fileSize != "" {
-			filter.Size, err = strconv.ParseInt(fileSize, 10, 64)
+			filter.SizeLower, err = strconv.ParseInt(fileSize, 10, 64)
+			filter.SizeUpper = filter.SizeLower // Todo: add range support.
 			if err != nil {
 				log.Println("[LOGSERVER-Error] Unable to parse size", fileSize, ".")
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -558,14 +559,16 @@ func main() {
 				return
 			}
 		} else {
-			filter.Size = -1
+			filter.SizeLower = -1
+			filter.SizeUpper = -1
 		}
-		filter.Location = location
+		//filter.Location = location
 		filter.Owner = owner
 		if createDate != "" {
 			t, _ := time.Parse(time.RFC3339, createDate)
 			log.Printf("[LOGSERVER-Info] createDate = %s", t)
-			filter.CreateDate, err = time.Parse(time.RFC3339, createDate)
+			filter.CreateDateLower, err = time.Parse(time.RFC3339, createDate)
+			filter.CreateDateUpper = filter.CreateDateLower // Todo: add range support.
 			if err != nil {
 				log.Println("[LOGSERVER-Error] Unable to parse create_data", createDate, ".")
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -575,8 +578,8 @@ func main() {
 				return
 			}
 		}
-		filter.Contact = contact
-		filter.Description = description
+		//filter.Contact = contact
+		//filter.Description = description
 
 		var info []LogEntry
 		info, err = retrieveLogInfo(gSession, &filter)

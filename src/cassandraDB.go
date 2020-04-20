@@ -25,11 +25,22 @@ type LogEntry struct {
 	TimeID      gocql.UUID `json:"timeID"`      // A unique identifier based on a timestamp.
 	FileName    string     `json:"fileName"`    // The name of the file.
 	Location    string     `json:"location"`    // The location of the file (i.e. URL).
-	Size        int64      `json:"size"`        // The size of the file (in MB).
+	Size        int64      `json:"size"`        // The size of the file (in KB).
 	CreateDate  time.Time  `json:"createDate"`  // A date stamp indicating when the file was created.
 	Owner       string     `json:"owner"`       // The owner of the file.
 	Contact     string     `json:"contact"`     // Contact information for the file owner.
 	Description string     `json:"description"` // A textual desciption of the file contents.
+}
+
+// LogFilter provides information for filterint Cassandra queries.
+type LogFilter struct {
+	TimeID          gocql.UUID // The unique identifier based on a timestamp.
+	FileName        string     // The name of the file.
+	SizeLower       int64      // The lower bound for the size of the file (in KB).
+	SizeUpper       int64      // The upper bound for the size of the file (in KB)
+	CreateDateLower time.Time  // The lower range date stamp indicating when the file was created.
+	CreateDateUpper time.Time  // The lower range date stamp indicating when the file was created.
+	Owner           string     // The owner of the file.
 }
 
 // Opens a session with the Cassandra cluster.
@@ -84,12 +95,7 @@ func registerLog(session *gocql.Session, entry *LogEntry) error {
 	// Insert a log entry.
 	var err error
 	uuid := gocql.TimeUUID()
-	/*
-		if err = session.Query(`INSERT INTO "LogEntry" (time_id, file_name, location, size, contact, description, owner, create_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			uuid, entry.FileName, entry.Location, entry.Size, entry.Contact, entry.Description, entry.Owner, entry.CreateDate).Exec(); err != nil {
-			log.Println("[LOGSERVER-Error]", err)
-		}
-	*/
+
 	if err = session.Query(`INSERT INTO "LogEntry" (time_id, file_name, location, contact, description) VALUES (?, ?, ?, ?, ?)`,
 		uuid, entry.FileName, entry.Location, entry.Contact, entry.Description).Exec(); err != nil {
 		log.Println("[LOGSERVER-Error]", err)
@@ -129,6 +135,21 @@ func unregisterLog(session *gocql.Session, entry *LogEntry) error {
 	var err error
 	if err = session.Query(`DELETE FROM "LogEntry" WHERE time_id = ? AND file_name = ?`,
 		entry.TimeID, entry.FileName).Exec(); err != nil {
+		log.Println("[LOGSERVER-Error]", err)
+		return err
+	}
+	if err = session.Query(`DELETE FROM "LogOwner" WHERE time_id = ? AND owner = ?`,
+		entry.TimeID, entry.Owner).Exec(); err != nil {
+		log.Println("[LOGSERVER-Error]", err)
+		return err
+	}
+	if err = session.Query(`DELETE FROM "LogSize" WHERE time_id = ? AND size = ?`,
+		entry.TimeID, entry.Size).Exec(); err != nil {
+		log.Println("[LOGSERVER-Error]", err)
+		return err
+	}
+	if err = session.Query(`DELETE FROM "LogTimestamp" WHERE time_id = ? AND create_date = ?`,
+		entry.TimeID, entry.CreateDate).Exec(); err != nil {
 		log.Println("[LOGSERVER-Error]", err)
 		return err
 	}
@@ -305,21 +326,22 @@ func createQuery(filter *LogEntry) (string, error) {
 }
 */
 
-func filterIsEmpty(filter *LogEntry) bool {
+func filterIsEmpty(filter *LogFilter) bool {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Invalid log entry:", err, ".")
+		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
 		return false
 	}
 
-	if (filter.FileName == "") && (filter.Owner == "") && (filter.Size < 0) && (filter.CreateDate.IsZero()) {
+	if (filter.FileName == "") && (filter.Owner == "") && (filter.SizeLower < 0) && (filter.SizeUpper < 0) &&
+		(filter.CreateDateLower.IsZero()) && (filter.CreateDateUpper.IsZero()) {
 		return true
 	}
 
 	return false
 }
 
-func retrieveLogInfo(session *gocql.Session, filter *LogEntry) ([]LogEntry, error) {
+func retrieveLogInfo(session *gocql.Session, filter *LogFilter) ([]LogEntry, error) {
 	// Validate input arguments.
 	if session == nil {
 		err := errors.New("invalid input argument")
@@ -342,7 +364,7 @@ func retrieveLogInfo(session *gocql.Session, filter *LogEntry) ([]LogEntry, erro
 		}
 	} else if filterContainsSizeOnly(filter) {
 		var err error
-		values, err = processSizeQuery(session, filter)
+		values, err = processSizeQuery(session, filter.SizeLower, filter.SizeLower)
 		if err != nil {
 			log.Println("[LOGSERVER-Error]", err)
 			return nil, err
