@@ -376,9 +376,9 @@ func retrieveLogInfo(session *gocql.Session, filter *LogFilter) ([]LogEntry, err
 			log.Println("[LOGSERVER-Error]", err)
 			return nil, err
 		}
-	} else if filterContainsCreateDateOnly(filter) {
+	} else if filterContainsCreateDateOnly(filter) || filterContainsCreateDateRangeOnly(filter) {
 		var err error
-		values, err = processCreateDateQuery(session, filter)
+		values, err = processCreateDateQuery(session, filter.CreateDateLower, filter.CreateDateUpper)
 		if err != nil {
 			log.Println("[LOGSERVER-Error]", err)
 			return nil, err

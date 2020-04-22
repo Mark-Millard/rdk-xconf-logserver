@@ -528,6 +528,8 @@ func main() {
 		//location := c.Query("location")
 		owner := c.Query("owner")
 		createDate := c.Query("create_date")
+		createDateLowerBound := c.Query("create_date.gt")
+		createDateUpperBound := c.Query("create_date.lt")
 		//contact := c.Query("contact")
 		//description := c.Query("description")
 
@@ -587,11 +589,37 @@ func main() {
 		}
 		//filter.Location = location
 		filter.Owner = owner
+		if createDateLowerBound != "" {
+			t, _ := time.Parse(time.RFC3339, createDateLowerBound)
+			log.Printf("[LOGSERVER-Info] createDateLowerBound = %s", t)
+			filter.CreateDateLower, err = time.Parse(time.RFC3339, createDateLowerBound)
+			if err != nil {
+				log.Println("[LOGSERVER-Error] Unable to parse create_data.gt", createDateLowerBound, ".")
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"message": "Info retrieval error",
+					"reason":  err.Error(),
+				})
+				return
+			}
+		}
+		if createDateUpperBound != "" {
+			t, _ := time.Parse(time.RFC3339, createDateUpperBound)
+			log.Printf("[LOGSERVER-Info] createDateUpperBound = %s", t)
+			filter.CreateDateUpper, err = time.Parse(time.RFC3339, createDateUpperBound)
+			if err != nil {
+				log.Println("[LOGSERVER-Error] Unable to parse create_data.lt", createDateUpperBound, ".")
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"message": "Info retrieval error",
+					"reason":  err.Error(),
+				})
+				return
+			}
+		}
 		if createDate != "" {
 			t, _ := time.Parse(time.RFC3339, createDate)
 			log.Printf("[LOGSERVER-Info] createDate = %s", t)
 			filter.CreateDateLower, err = time.Parse(time.RFC3339, createDate)
-			filter.CreateDateUpper = filter.CreateDateLower // Todo: add range support.
+			filter.CreateDateUpper = filter.CreateDateLower
 			if err != nil {
 				log.Println("[LOGSERVER-Error] Unable to parse create_data", createDate, ".")
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{

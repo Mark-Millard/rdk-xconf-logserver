@@ -37,6 +37,39 @@ func createLogTimestampQuery(createDate time.Time) (string, error) {
 	return query, nil
 }
 
+func createLogTimestampRangeQuery(lowerBound time.Time, upperBound time.Time) (string, error) {
+	var query string
+	var parts []string
+	var lowerSpecified bool = false
+
+	parts = make([]string, 0)
+	parts = append(parts, "SELECT time_id, create_date FROM \"LogTimestamp\"")
+	if !lowerBound.IsZero() {
+		createDateStr := lowerBound.Format(time.RFC3339)
+		parts = append(parts, " WHERE create_date >= '")
+		parts = append(parts, createDateStr+"'")
+		lowerSpecified = true
+	}
+	if !upperBound.IsZero() {
+		createDateStr := upperBound.Format(time.RFC3339)
+		if lowerSpecified {
+			parts = append(parts, " AND create_date <= '")
+			parts = append(parts, createDateStr+"'")
+		} else {
+			parts = append(parts, " WHERE create_date <= '")
+			parts = append(parts, createDateStr+"'")
+		}
+	}
+
+	parts = append(parts, " ALLOW FILTERING")
+
+	for _, value := range parts {
+		query = query + value
+	}
+
+	return query, nil
+}
+
 func createLogTimestampQueryForUUID(uuid gocql.UUID) (string, error) {
 	var query string
 	var parts []string
@@ -70,8 +103,41 @@ func filterContainsCreateDateOnly(filter *LogFilter) bool {
 	return false
 }
 
-func processCreateDateQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry, error) {
+func filterContainsCreateDateRangeOnly(filter *LogFilter) bool {
 	if filter == nil {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		return false
+	}
+
+	if (filter.FileName == "") && (filter.Owner == "") && ((filter.SizeLower < 0) || (filter.SizeUpper < 0)) &&
+		((!filter.CreateDateLower.IsZero()) || (!filter.CreateDateUpper.IsZero())) {
+		return true
+	}
+
+	return false
+}
+
+func validDateRange(lowerBound time.Time, upperBound time.Time) bool {
+	if (!lowerBound.IsZero()) && (upperBound.IsZero()) {
+		// Special case: only the lower bound is being specified.
+		return true
+	}
+	if (lowerBound.IsZero()) && (!upperBound.IsZero()) {
+		// Special case: only the upper bound is being specified.
+		return true
+	}
+	if (lowerBound.IsZero()) && (upperBound.IsZero()) {
+		return false
+	}
+	if (upperBound.Before(lowerBound)) || (lowerBound.After(upperBound)) {
+		return false
+	}
+	return true
+}
+
+func processCreateDateQuery(session *gocql.Session, lowerBound time.Time, upperBound time.Time) ([]LogEntry, error) {
+	if !validDateRange(lowerBound, upperBound) {
 		err := errors.New("invalid input argument")
 		log.Println("[LOGSERVER-Error] Unable to process create_date query:", err, ".")
 		return nil, err
@@ -88,8 +154,13 @@ func processCreateDateQuery(session *gocql.Session, filter *LogFilter) ([]LogEnt
 	var location string
 	var createDate time.Time
 
-	// Retrieve values for owner meta-data.
-	query, _ := createLogTimestampQuery(filter.CreateDateLower)
+	// Retrieve values for timestamp meta-data.
+	var query string
+	if lowerBound.Equal(upperBound) {
+		query, _ = createLogTimestampQuery(lowerBound)
+	} else {
+		query, _ = createLogTimestampRangeQuery(lowerBound, upperBound)
+	}
 	log.Println("[LOGSERVER-Info] query:", query)
 
 	iter := session.Query(query).Iter()
