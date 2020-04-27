@@ -32,7 +32,11 @@ follow these instructions:
 
         $ go get -u github.com/spf13/viper
 
-5. Build the source:
+5. Install the Go gocql package:
+
+        $ go get -u github.com/gocql/gocql
+
+6. Build the source:
 
         $ cd src
         $ go build -o logserver
@@ -53,7 +57,7 @@ $ ./logserver &
 To validate that the server is running correctly, use curl:
 
 ```
-$ curl -X GET http://localhost:8080/ping
+$ curl -X GET http://localhost:8080/api/v1/ping
 ```
 
 The JSON message **{"message":"pong"}** will be returned upon success.
@@ -61,11 +65,11 @@ The JSON message **{"message":"pong"}** will be returned upon success.
 ## Configuration
 
 The Alticast logserver uses a ***config.yml*** file to configure its behavior.
-The configuration file may be located in either the */etc/logserver*, */opt/logserver/config*,
-or *$HOME/.logserver* directory.
+The configuration file may be located in either the */etc/logserver*,
+*/opt/logserver/config*, or *$HOME/.logserver* directory.
 
-If the configuration file is not accessible, then the logserver will use the following
-defaults:
+If the configuration file is not accessible, then the logserver will use the
+following defaults:
 
 * Destination URL: file:///opt/logserver/logs
 * Encoding: false
@@ -87,22 +91,22 @@ Where *<server_ip_address>* is the IP Address for the logserver.
 To upload a file to the logserver, you can use the following curl command:
 
 ```
-$ curl -X POST http://localhost:8080/logs/upload -F "file=@<file_path>" -H "Content-Type: multipart/form-data"
+$ curl -X POST http://localhost:8080/api/v1/logs/upload -F "file=@<file_path>" -H "Content-Type: multipart/form-data"
 
 For example:
 
-$ curl -X POST http://localhost:8080/logs/upload -F "file=@/home/msm/tmp/logserverTest_v1.txt" -H "Content-Type: multipart/form-data"
+$ curl -X POST http://localhost:8080/api/v1/logs/upload -F "file=@/home/msm/tmp/logserverTest_v1.txt" -H "Content-Type: multipart/form-data"
 ```
 ### Download a Log from the Server
 
 To download a file from the logserver, you can use the following curl command:
 
 ```
-$ curl -X GET http://localhost:8080/logs/download?name=<file_name>
+$ curl -X GET http://localhost:8080/api/v1/logs/download?name=<file_name>
 
 For example:
 
-$ curl -X GET http://localhost:8080/logs/download?name=logserverTest_v1.txt
+$ curl -X GET http://localhost:8080/api/v1/logs/download?name=logserverTest_v1.txt
 ```
 
 ### Delete a Log on the Server
@@ -110,9 +114,9 @@ $ curl -X GET http://localhost:8080/logs/download?name=logserverTest_v1.txt
 To delete a file from the logserver, you can use the following curl command:
 
 ```
-$ curl -X DELETE http://localhost:8080/logs/<file_name>
+$ curl -X DELETE http://localhost:8080/api/v1/logs/<file_name>
 
 For example:
 
-$ curl -X DELETE http://localhost:8080/logs/logserverTest_v1.txt
+$ curl -X DELETE http://localhost:8080/api/v1/logs/logserverTest_v1.txt
 ```
