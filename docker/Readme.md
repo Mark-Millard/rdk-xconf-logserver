@@ -11,7 +11,7 @@ $ docker build --no-cache --build-arg user=<user> --build-arg password=<password
 Where "__<user>__" is the user name for the private Bitbucket repository where the log server source will be retrieved, and "__<password>__" is the user's password.
 
 ```
-__Note__: that this is a temporary solution until the code is pushed to a public repo on Github.
+Note: that this is a temporary solution until the code is pushed to a public repo on Github.
 ```
 
 To check whether the image was created successfully, use:
@@ -31,11 +31,21 @@ This build uses the default configuration, config.yaml. Logs will be stored loca
 To run the Docker container, and thus the Xconf Log Server, use:
 
 ```
-$ docker run -t -i logserver:v0.1.0
+$ docker run --network xconf-logserver-network -p 8080:8080 -t -i logserver:v0.1.0
 ```
+
+The __xconf-logserver-network-- is a Docker network configured to work with the
+Cassandra DB Docker container (see XXX) that manages the log server's meta-data.
+If the log server is configured to use a different Cassandra server, then the
+__--network__ option may be dropped.
+
+The logserver Docker port __8080__ is mapped to the Docker host platform,
+running the log server. If the log server is configured to use a different port
+(see config.yml), then this port should be modified appropriately to map the
+correct value.
 
 To run a bash shell against this image, use:
 
 ```
-$ docker run -t -i logserver:v0.1.0 bash
+docker run --network xconf-logserver-network -p 8080:8080 -t -i logserver:v0.1.0 bash
 ```

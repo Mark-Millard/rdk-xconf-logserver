@@ -8,7 +8,7 @@ WORKDIR /tmp
 
 # Install the build environment dependencies.
 RUN apt-get update && apt-get install -y \
-    build-essential wget git && \
+    build-essential wget git iputils-ping iproute2 && \
     rm -rf /var/lib/apt/lists/*
 
 RUN wget https://dl.google.com/go/go1.14.linux-amd64.tar.gz && \
