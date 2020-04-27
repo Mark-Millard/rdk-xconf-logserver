@@ -31,7 +31,7 @@ This build uses the default configuration, config.yaml. Logs will be stored loca
 To run the Docker container, and thus the Xconf Log Server, use:
 
 ```
-$ docker run --network xconf-logserver-network -p 8080:8080 -t -i logserver:v0.1.0
+$ docker run --network xconf-logserver-network -p 8080:8080 -v /opt/logserver/logs:/opt/logserver/logs -t -i logserver:v0.1.0
 ```
 
 The __xconf-logserver-network__ is a Docker network configured to work with the
@@ -39,13 +39,18 @@ Cassandra DB Docker container (see XXX) that manages the log server's meta-data.
 If the log server is configured to use a different Cassandra server, then the
 __--network__ option may be dropped.
 
-The logserver Docker port __8080__ is mapped to the Docker host platform,
+The logserver Docker port __8080__ is mapped to the Docker host platform
 running the log server. If the log server is configured to use a different port
 (see config.yml), then this port should be modified appropriately to map the
 correct value.
 
+The logserver Docker directory, __/opt/logserver/logs__ is mapped to the Docker
+host platform directory __/opt/logserver/logs__. If the confil.yml file
+specifies a different directory, then this volume specification should be
+modified appropriately to map the correct location.
+
 To run a bash shell against this image, use:
 
 ```
-docker run --network xconf-logserver-network -p 8080:8080 -t -i logserver:v0.1.0 bash
+docker run --network xconf-logserver-network -p 8080:8080 -v /opt/logserver/logs:/opt/logserver/logs -t -i logserver:v0.1.0 bash
 ```
