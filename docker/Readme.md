@@ -34,7 +34,7 @@ To run the Docker container, and thus the Xconf Log Server, use:
 $ docker run --network xconf-logserver-network -p 8080:8080 -t -i logserver:v0.1.0
 ```
 
-The __xconf-logserver-network-- is a Docker network configured to work with the
+The __xconf-logserver-network__ is a Docker network configured to work with the
 Cassandra DB Docker container (see XXX) that manages the log server's meta-data.
 If the log server is configured to use a different Cassandra server, then the
 __--network__ option may be dropped.
