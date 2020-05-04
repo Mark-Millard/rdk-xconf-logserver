@@ -18,16 +18,13 @@ RUN wget https://dl.google.com/go/go1.14.linux-amd64.tar.gz && \
 # Set the working directory for log server build.
 WORKDIR /usr/src/xconf-logserver-build
 
-ENV GOPATH /usr/src/xconf-logserver-build/xconf-logserver
+ENV GOPATH /usr/src/xconf-logserver-build/rdk-xconf-logserver
 ENV GOROOT /usr/local/go
 ENV PATH $GOPATH/bin:$GOROOT/bin:$PATH
 
 # Install the Go dependencies and build the logserver.
-ARG user
-ARG password
-RUN git clone https://$user:$password@bitbucket.org/charter-rms/xconf-logserver.git && \
-    cd xconf-logserver && \
-    git checkout cassandra && \
+RUN git clone https://github.com/alticast/rdk-xconf-logserver.git && \
+    cd rdk-xconf-logserver && \
     go get -u github.com/gin-gonic/gin && \
     go get -u github.com/spf13/viper && \
     go get -u github.com/gocql/gocql && \
