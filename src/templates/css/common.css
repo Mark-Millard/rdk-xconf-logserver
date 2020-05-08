@@ -1,0 +1,259 @@
+#top_panel {
+    position: fixed; 
+    left:0px;
+    top:0px;
+    width: 100%;
+    height: 63px;
+    background-color: #FFF;
+    z-index: 99;
+}
+#middle_panel {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0px;
+    left: 0px;
+    min-width: 1074px;
+    overflow-x: auto;
+    background-color: rgb(236,239,244);
+}
+#right_panel {
+    margin-left: 240px;
+    /*min-width: 752px*/
+}
+#list_panel {
+    height: 100%;
+    max-width: 1295px;
+    padding-right: 2.438rem;
+    padding-left: 2.438rem;
+    padding-bottom: 2.438rem;
+    overflow-y: auto;
+    min-width: 424px;
+    /*overflow-x: auto;*/
+}
+/*
+@media (min-width: 992px) {
+    #right_panel {
+        margin-left: 240px;
+    }
+}
+@media (max-width: 992px) {
+    #filter_panel {
+        display:none;
+    }
+}
+*/
+.f_left {
+    position: relative;
+    float: left;
+}
+.f_right {
+    position: relative;
+    float: right;
+}
+.font_filter_title {
+    color: #003057;
+    font-size: 16px;
+    font-family: OpenSans-Semibold;
+}
+.font_filter_item {
+    color: #003057;
+    font-size: 14px;
+    font-family: OpenSans-Semibold;
+}
+.font_title {
+    color: #000;
+    font-size: 20px;
+    font-family: OpenSans-Semibold;
+}
+.tb_t {
+    position: relative;
+    float: left;
+    background-color: #003057;
+    /*border-radius: 4px;*/
+    height: 45px;
+}
+.tb_r {
+    position: relative;
+    float: left;
+    background-color: #fff;
+    /*border-radius: 4px;*/
+    height: 45px;
+    /*cursor: pointer;*/
+}
+.tb_r:hover {
+    background-color: rgb(226,229,234);
+}
+.tb_c {
+    position: relative;
+    float: left;
+    /*border-radius: 4px;*/
+    height: 45px;
+    text-align: center;
+}
+.t_title {
+    color: #fff;
+    font-size: 17px;
+    font-family: OpenSans-Regular;
+    line-height: 2.5;
+}
+.t_txt {
+    display: inline-block;
+    padding-top: 12px;
+    color: #000;
+    font-size: 13px;
+    font-family: OpenSans-Regular;
+    /*line-height: 3.1;*/
+}
+.t_r_line {
+    position: relative;
+    float: left;
+    width: 100%;
+    height:1px;
+    background-color: rgb(220,220,220);
+}
+.new_line {
+    position: relative;
+    float: left;
+    width: 100%;
+    text-align: center;
+}
+.paging {
+    float: left;
+    width: 100%;
+    text-align: center;
+}
+.page {
+    position: relative;
+    color: #495057;
+    font-size: 12px;
+    font-family: OpenSans-Regular;
+    text-align: center;
+    padding-right: 7px;
+    padding-left: 7px;
+    cursor: pointer;
+}
+.page_b {
+    position: relative;
+    color: #003057;
+    font-size: 12px;
+    font-family: OpenSans-Bold;
+    text-align: center;
+    padding-right: 7px;
+    padding-left: 7px;
+    cursor: pointer;
+}
+.page_g {
+    position: relative;
+    font-size: 12px;
+    font-family: OpenSans-Regular;
+    text-align: center;
+    padding-right: 7px;
+    padding-left: 7px;
+}
+#total_num {
+    float: right;
+    font-size: 14px;
+    font-family: OpenSans-Regular;
+    text-align: center;
+    color: #e60039;
+    line-height: 2;
+    height: 30px;
+    padding-right: 15px;
+}
+.page_opt {
+    float: right;
+    font-size: 14px;
+    font-family: OpenSans-Regular;
+    text-align: center;
+    color: #000;
+}
+.input_date {
+    position: fixed;
+    color: #495057;
+    font-size: 14px;
+    font-family: OpenSans-Regular;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    padding: 5px;
+}
+input {
+    -webkit-writing-mode: horizontal-tb !important;
+    text-rendering: auto;
+    color: -internal-light-dark-color(black, white);
+    letter-spacing: normal;
+    word-spacing: normal;
+    text-transform: none;
+    text-indent: 0px;
+    text-shadow: none;
+    display: inline-block;
+    text-align: start;
+    -webkit-appearance: textfield;
+    background-color: -internal-light-dark-color(white, black);
+    -webkit-rtl-ordering: logical;
+    cursor: text;
+    margin: 0em;
+    font: 400 13.3333px Arial;
+    padding: 1px 0px;
+    border-width: 2px;
+    border-style: inset;
+    border-color: initial;
+    border-image: initial;
+}
+.btn-dark {
+    color: #fff;
+    background-color: #1f5d90;
+    border-color: #0d385d;
+}
+.btn {
+    display: inline-block;
+    font-family: OpenSans-Semibold;
+    font-size: 14px;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    border: 1px solid;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-top: 8px;
+    padding-bottom: 12px;
+    border-radius: 0.25rem;
+    outline: none !important;
+    cursor: pointer;
+    pointer-events: all;
+}
+.btn:hover {
+    background-color: #4f8dc0;
+}
+.demo-icon{
+    font-family: "fontello";
+    font-style: normal;
+    font-weight: normal;
+    speak: none;
+    display: inline-block;
+    text-decoration: inherit;
+    width: 1em;
+    margin-right: .2em;
+    text-align: center;
+    /* opacity: .8; */
+    /* For safety - reset parent styles, that can break glyph codes*/
+    font-variant: normal;
+    text-transform: none;
+    /* fix buttons height, for twitter bootstrap */
+    line-height: 1em;
+    /* Animation center compensation - margins should be symmetric */
+    /* remove if not needed */
+    margin-left: .2em;
+    /* You can be more comfortable with increased icons size */
+    /* font-size: 120%; */
+    /* Font smoothing. That was taken from TWBS */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Uncomment for 3D effect */
+    /* text-shadow: 1px 1px 1px rgba(127, 127, 127, 0.3); */
+}
+  
