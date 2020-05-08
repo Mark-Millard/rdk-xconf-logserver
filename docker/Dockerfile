@@ -37,7 +37,7 @@ RUN mkdir -p /opt/logserver/logs && \
     mkdir -p /etc/logserver && \
     cp $GOPATH/src/logserver /usr/bin/logserver && \
     cp $GOPATH/src/config/config.yml /etc/logserver && \
-    cp $GOPATH/src/templates/* /opt/logserver/templates
+    cp -r $GOPATH/src/templates/* /opt/logserver/templates
 
 # Set the working directory for Cassandra DB build.
 WORKDIR /usr/src/cassandra
