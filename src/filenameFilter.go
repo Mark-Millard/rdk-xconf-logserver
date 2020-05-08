@@ -175,3 +175,178 @@ func processLogEntryQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry
 
 	return values, nil
 }
+
+func filterContainsFilenameAndSizeRange(filter *LogFilter) bool {
+	if filter == nil {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		return false
+	}
+
+	if (filter.FileName != "") && (filter.Owner == "") && ((filter.SizeLower >= 0) || (filter.SizeUpper >= 0)) &&
+		(filter.CreateDateLower.IsZero()) && (filter.CreateDateUpper.IsZero()) {
+		return true
+	}
+
+	return false
+}
+
+func processFilenameAndSizeQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry, error) {
+	if filter == nil {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		return nil, err
+	}
+	if filter.FileName == "" {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		return nil, err
+	}
+	if !validSizeRange(filter.SizeLower, filter.SizeUpper) {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		return nil, err
+	}
+
+	// Retrieve log entries for file name.
+	var values []LogEntry
+	var err error
+	values, err = processLogEntryQuery(session, filter)
+	if err != nil {
+		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		return nil, err
+	}
+
+	// Prune entries for mismatched size range.
+	var tmpValues []LogEntry
+	for _, next := range values {
+		size := next.Size
+		if (filter.SizeLower > size) || (filter.SizeUpper < size) {
+			// Size out of range, skip entry.
+		} else {
+			tmpValues = append(tmpValues, next)
+		}
+	}
+	values = tmpValues
+
+	return values, nil
+}
+
+func filterContainsFilenameAndDateRange(filter *LogFilter) bool {
+	if filter == nil {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		return false
+	}
+
+	if (filter.FileName != "") && (filter.Owner == "") && (filter.SizeLower < 0) && (filter.SizeUpper < 0) &&
+		((!filter.CreateDateLower.IsZero()) || (!filter.CreateDateUpper.IsZero())) {
+		return true
+	}
+
+	return false
+}
+
+func processFilenameAndCreateDateQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry, error) {
+	if filter == nil {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		return nil, err
+	}
+	if filter.FileName == "" {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		return nil, err
+	}
+	if !validDateRange(filter.CreateDateLower, filter.CreateDateUpper) {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		return nil, err
+	}
+
+	// Retrieve log entries for file_name.
+	var values []LogEntry
+	var err error
+	values, err = processLogEntryQuery(session, filter)
+	if err != nil {
+		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		return nil, err
+	}
+
+	// Prune entries for mismatched date range.
+	var tmpValues []LogEntry
+	for _, next := range values {
+		date := next.CreateDate
+		if (filter.CreateDateLower.Before(date)) || (filter.CreateDateUpper.After(date)) {
+			// Date timestamp out of range, skip entry.
+		} else {
+			tmpValues = append(tmpValues, next)
+		}
+	}
+	values = tmpValues
+
+	return values, nil
+}
+
+func filterContainsFilenameAndSizeRangeAndDateRange(filter *LogFilter) bool {
+	if filter == nil {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		return false
+	}
+
+	if (filter.FileName != "") && (filter.Owner == "") && ((filter.SizeLower >= 0) || (filter.SizeUpper >= 0)) &&
+		((!filter.CreateDateLower.IsZero()) || (!filter.CreateDateUpper.IsZero())) {
+		return true
+	}
+
+	return false
+}
+
+func processFilenameAndSizeAndCreateDateQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry, error) {
+	if filter == nil {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		return nil, err
+	}
+	if filter.FileName == "" {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		return nil, err
+	}
+	if !validSizeRange(filter.SizeLower, filter.SizeUpper) {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		return nil, err
+	}
+	if !validDateRange(filter.CreateDateLower, filter.CreateDateUpper) {
+		err := errors.New("invalid input argument")
+		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		return nil, err
+	}
+
+	// Retrieve log entries for file_name.
+	var values []LogEntry
+	var err error
+	values, err = processLogEntryQuery(session, filter)
+	if err != nil {
+		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		return nil, err
+	}
+
+	// Prune entries for mismatched date range.
+	var tmpValues []LogEntry
+	for _, next := range values {
+		date := next.CreateDate
+		size := next.Size
+		if (filter.CreateDateLower.Before(date)) || (filter.CreateDateUpper.After(date)) ||
+			(filter.SizeLower > size) || (filter.SizeUpper < size) {
+			// Size or date timestamp out of range, skip entry.
+		} else {
+			tmpValues = append(tmpValues, next)
+		}
+	}
+	values = tmpValues
+
+	return values, nil
+}

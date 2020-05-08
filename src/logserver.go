@@ -22,7 +22,8 @@ import (
 	"bytes"
 	b64 "encoding/base64"
 	"errors"
-	"fmt"
+
+	//	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -674,24 +675,14 @@ func main() {
 	})
 
 	// Handler for REST API, http://<ip_address>:<port>/index. Web UI.
-	router.LoadHTMLGlob("templates/*")
+	router.LoadHTMLGlob("templates/index.html")
+	router.Static("/css", "templates/css")
+	router.Static("/font", "templates/font")
+	router.Static("/js", "templates/js")
+	router.Static("/resource", "templates/resource")
 	router.GET("/index", func(c *gin.Context) {
-		dst := viper.GetString("logserver.destination")
-
-		// Retrieve the logs from the configured destination.
-		logs, err := getLogs(dst)
-		if err != nil {
-			c.String(http.StatusBadRequest, fmt.Sprintf("get logs err: %s", err.Error()))
-			return
-		}
-
-		// Build up a list of log names for the template.
-		entries := logs
-
-		c.HTML(http.StatusOK, "index.tmpl", gin.H{
-			"title":   "Alticast Xconf Log Server",
-			"loglist": entries,
-		})
+		// Display Web UI.
+		c.HTML(http.StatusOK, "index.html", nil)
 	})
 
 	// Open Cassandra session.

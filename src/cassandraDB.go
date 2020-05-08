@@ -396,6 +396,27 @@ func retrieveLogInfo(session *gocql.Session, filter *LogFilter) ([]LogEntry, err
 			log.Println("[LOGSERVER-Error]", err)
 			return nil, err
 		}
+	} else if filterContainsFilenameAndSizeRange(filter) {
+		var err error
+		values, err = processFilenameAndSizeQuery(session, filter)
+		if err != nil {
+			log.Println("[LOGSERVER-Error]", err)
+			return nil, err
+		}
+	} else if filterContainsFilenameAndDateRange(filter) {
+		var err error
+		values, err = processFilenameAndCreateDateQuery(session, filter)
+		if err != nil {
+			log.Println("[LOGSERVER-Error]", err)
+			return nil, err
+		}
+	} else if filterContainsFilenameAndSizeRangeAndDateRange(filter) {
+		var err error
+		values, err = processFilenameAndSizeAndCreateDateQuery(session, filter)
+		if err != nil {
+			log.Println("[LOGSERVER-Error]", err)
+			return nil, err
+		}
 	} else {
 		err := errors.New("filter not supported")
 		return nil, err
