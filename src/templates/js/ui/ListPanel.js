@@ -15,7 +15,6 @@ W.defineModule("ui/ListPanel", ["Log"], function(Log) {
     var compTotalNum;
 
     var onchangeOption = function(evt) {
-        console.log(evt.target.selectedIndex);
         var before = pageRowCount;
         pageRowCount = PAGE_OPT[evt.target.selectedIndex];
         totalPage = Math.floor((data.length+pageRowCount-1)/pageRowCount);
@@ -38,8 +37,6 @@ W.defineModule("ui/ListPanel", ["Log"], function(Log) {
 
     var download = function(evt) {
         var idx = evt.target._wobj.idx;
-        console.log("download " + idx);
-
         APP.XConfServer.downoladLog(data[idx].fileName);
 
         evt.cancelBubble = true;
@@ -110,6 +107,19 @@ W.defineModule("ui/ListPanel", ["Log"], function(Log) {
         }
     }
 
+    var createEmptyRow = function(table) {
+        var row = new W.Div({className: "tb_r_empty", width:"100%"});
+        table.add(row);
+        var c = new W.Div({className: "tb_c", width:"50%"});
+        c.add(new W.Span({className: "t_txt", opacity:0, text:"-----------------------------------------------------------------------------------------------------------------------------------------"}));
+        row.add(c);
+        table.add(new W.Div({className:"t_r_line"}));
+        var c = new W.Div({className: "tb_c", width:"50%"});
+        c.add(new W.Span({className: "t_txt", opacity:0, text:"-----------------------------------------------------------------------------------------------------------------------------------------"}));
+        row.add(c);
+        table.add(new W.Div({className:"t_r_line"}));
+    }
+
     var createRow = function(idx, table) {
         var row = new W.Div({className: "tb_r", width:"100%"});
         table.add(row);
@@ -163,7 +173,7 @@ W.defineModule("ui/ListPanel", ["Log"], function(Log) {
         c = new W.Div({className: "tb_c", width:"55%"})
         c.add(new W.Span({className: "t_title", text:"File Name"}));
         row.add(c);
-        c = new W.Div({className: "tb_c", width:"20%"})
+        c = new W.Div({className: "tb_c", minWidth:"106px", width:"20%"})
         c.add(new W.Span({className: "t_title", text:"Created Date"}));
         row.add(c);
         c = new W.Div({className: "tb_c", width:"10%"})
@@ -172,13 +182,17 @@ W.defineModule("ui/ListPanel", ["Log"], function(Log) {
         c = new W.Div({className: "tb_c", width:"10%"})
         c.add(new W.Span({className: "t_title", text:""}));
         row.add(c);
-        console.log("data loength "+data.length)
-        for (var i=startIdx; i<=endIdx; i++) {
-            if (data.length > i) {
-                curRowCount++;
-                createRow(i, tb);
-            } else
-                break;
+        if (data.length == 0) {
+            createEmptyRow(tb);
+        } else {
+            createEmptyRow(tb);
+            for (var i=startIdx; i<=endIdx; i++) {
+                if (data.length > i) {
+                    curRowCount++;
+                    createRow(i, tb);
+                } else
+                    break;
+            }
         }
         updateView();
         createPaging();

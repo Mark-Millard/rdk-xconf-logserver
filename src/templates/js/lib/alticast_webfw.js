@@ -3896,7 +3896,8 @@ W.define("IComponent", "Class", function(WClass){
 		textOverflow : "text-overflow",
 		pointer : "pointer-events",
 		transition: "transition",
-		cursor: "cursor"
+		cursor: "cursor",
+		minWidth: "min-width"
 
 	};
 	IComponent.normalStyles = {

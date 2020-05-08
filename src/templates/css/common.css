@@ -26,6 +26,16 @@ body {
     margin-left: 240px;
     /*min-width: 752px*/
 }
+#filter_panel {
+    position: fixed;
+    left: 0px;
+    top: 0px;
+    width: 240px;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background-color: rgb(255,255,255)
+}
 #list_panel {
     height: 100%;
     max-width: 1295px;
@@ -133,6 +143,14 @@ p.copyright {
     background-color: #fff;
     /*border-radius: 4px;*/
     height: 45px;
+    /*cursor: pointer;*/
+}
+.tb_r_empty {
+    position: relative;
+    float: left;
+    background-color: #fff;
+    /*border-radius: 4px;*/
+    height: 0px;
     /*cursor: pointer;*/
 }
 .tb_r:hover {

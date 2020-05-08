@@ -57,8 +57,6 @@ W.defineModule(
 
     var windowResized = function() {
       var width = window.innerWidth;
-      console.log("window resized (" 
-            + window.innerWidth+"x"+window.innerHeight+")");
       if (width < 1000) {
         filterPanel.setStyle({display:"none"});
         //if (width > 500)
@@ -73,7 +71,7 @@ W.defineModule(
       var promise = APP.XConfServer.info(createGt, createLt, sizeGt, sizeLt, name);
       promise.then(
           function(result) {
-              log.inspect(JSON.parse(result));
+              //log.inspect(JSON.parse(result));
               var data = JSON.parse(result).info;
               listPanel.resetData(data);
           }

@@ -19,6 +19,12 @@ W.defineModule("ui/FilterPanel", ["Log"], function(Log) {
     var cName = document.getElementById("file_name");
     
     var loadSavedFilter = function() {
+        cStart = document.getElementById("start_date");
+        cEnd = document.getElementById("end_date");
+        cSizeGt = document.getElementById("size_from");
+        cSizeLt = document.getElementById("size_to");
+        cName = document.getElementById("file_name");
+
         cStart.value = "";
         cEnd.value = "";
         cSizeGt.value = "";
@@ -100,8 +106,18 @@ W.defineModule("ui/FilterPanel", ["Log"], function(Log) {
     }
 
     var createComponent = function() {
-        var comp = new W.Div({ id: "filter_panel", position:"fixed",
-                x: 0, y: 0, width: 240, height: "100%", color: "rgb(255,255,255)" });
+        var comp = new W.Div({ id: "filter_panel" });
+        comp.comp.innerHTML = "  <input id=\"start_date\" type=\"text\" class=\"input_date\"" +
+        "      name=\"start_date\" value=\"\" style=\"position:absolute; z-index:999; cursor: pointer; left: 20px; top: 156px; width: 77px;height: 25px;\"/>"+
+        "  <input id=\"end_date\" type=\"text\" class=\"input_date\""+
+        "      name=\"end_date\" value=\"\" style=\"position:absolute; z-index:999; cursor: pointer; left: 134px; top: 156px; width: 77px;height: 25px;\"/>"+
+        "  <input id=\"size_from\" type=\"text\" class=\"input_date\""+
+        "      name=\"size_from\" value=\"\" style=\"position:absolute; z-index:999; cursor: pointer; left: 20px; top: 236px; width: 77px;height: 25px;\"/>"+
+        "  <input id=\"size_to\" type=\"text\" class=\"input_date\""+
+        "      name=\"size_to\" value=\"\" style=\"position:absolute; z-index:999; cursor: pointer; left: 134px; top: 236px; width: 77px;height: 25px;\"/>"+
+        "  <input id=\"file_name\" type=\"text\" class=\"input_date\""+
+        "      name=\"file_name\" value=\"\" style=\"position:absolute; z-index:999; cursor: pointer; left: 20px; top: 316px; width: 190px;height: 25px;\"/>";
+
         // upper space
         comp.add(new W.Div({className:"new_line", height: 80}));
 
@@ -147,7 +163,9 @@ W.defineModule("ui/FilterPanel", ["Log"], function(Log) {
         //a.onPointerClicked = clear;
         //a.onTouchEnd = clear;
         d.add(a);
-        
+
+        // space
+        comp.add(new W.Div({className:"new_line", height: 160}));
         return comp;
     };
 
@@ -159,7 +177,11 @@ W.defineModule("ui/FilterPanel", ["Log"], function(Log) {
             scene = sc;
             _this = this;
             this.comp = createComponent(this);
-            loadSavedFilter();
+            require(["js/lib/datepicker.js"]);
+            setTimeout(function() {
+                loadSavedFilter();
+            }, 1000);
+
         },
         show: function(mode, init) {
             this.mode = APP.Config.MODE_ACTIVE;
