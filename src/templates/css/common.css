@@ -1,3 +1,8 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
 #top_panel {
     position: fixed; 
     left:0px;
@@ -31,6 +36,47 @@
     min-width: 424px;
     /*overflow-x: auto;*/
 }
+.footer {
+    position: absolute;
+    bottom: 0px;
+    width: 100%;
+    background-color: #262626;
+    height: 180px;
+    z-index: 999;
+    pointer-events: all;
+    opacity: 0.7;
+    transform: translateY(72%);
+    transition-duration: 200ms;
+}
+.footer:hover {
+    opacity: 1;
+    transform: translateY(0%);
+}
+.ft_logo {
+    height: 28px;
+    margin-left: 10%;
+    margin-top: 7px;
+}
+.ft_menu_box {
+    height: 40px;
+    margin-left: 10%;
+    margin-top: 40px;
+}
+p.copyright {
+    font-family: OpenSans-Semibold;
+    font-size: 14px;
+    color: #666;
+    line-height: 14px;
+    margin-top: -25px;
+}
+.copyright_t {
+    font-family: OpenSans-Semibold;
+    font-size: 14px;
+    color: #AAA;
+    line-height: 14px;
+    margin-top: -25px;
+    text-decoration: none;
+}
 /*
 @media (min-width: 992px) {
     #right_panel {
@@ -43,6 +89,14 @@
     }
 }
 */
+.title {
+    left: 5px;
+    top: -6px;
+    color: #666;
+    font-size: 30px;
+    font-family: OpenSans-Bold;
+    line-height: 2.5;
+}
 .f_left {
     position: relative;
     float: left;

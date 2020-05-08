@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Cache-Control" content="no-cache" />
   <meta name="viewport" content="width=device-width, user-scalable=yes" />
-  <title>XConf Log Web UI</title>
+  <title>Xconf Log Web UI</title>
   <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
   <script type="text/javascript" src="js/lib/moment.js"></script>
   <script type="text/javascript" src="js/lib/daterangepicker.js"></script>
@@ -129,52 +129,15 @@
       name="size_to" value="" style="position:absolute; z-index:999; cursor: pointer; left: 134px; top: 236px; width: 77px;height: 25px;"/>
   <input id="file_name" type="text" class="input_date" 
       name="file_name" value="" style="position:absolute; z-index:999; cursor: pointer; left: 20px; top: 316px; width: 190px;height: 25px;"/>
-      <!--script type="text/javascript">
-      console.log("run daterangepicker1 ");
-      console.log("run daterangepicker1 ");
-      var date = new Date();
-    var year = date.getFullYear();
-    var month = date.getMonth()+1;
-    var day = date.getDate();
-    var today = year+"/"+month+"/"+day;
-    var startEp, endEp;
-    var rangeStart, rangeEnd;
-    var gap, interval;
-    //console.log(startEp+"  "+endEp); //1549897200    1550502000
-    var filteredR=""; 
-    var filteredM="";
-    var pickerStartEp;
-    var pickerEndEp;
-    startEp = moment(today).unix(); //unix time  00:00:00
-    endEp = startEp + 86399; //unix time 23:59:59
-    rangeStart = startEp;
-    rangeEnd = endEp;
-
-      $(function() {
-        $('input[name="start_date"]').daterangepicker({
-          singleDatePicker: true,
-          showDropdowns: true,
-          autoUpdateInput: false
-        }, function(start, end, label) {
-          
-        });
-        $('input[name="start_date"]').on('apply.daterangepicker', function(ev, picker) {
-          $(this).val(picker.startDate.format('YYYY-MM-DD'));
-        });
-      });
-      $(function() {
-        $('input[name="end_date"]').daterangepicker({
-          singleDatePicker: true,
-          showDropdowns: true,
-          autoUpdateInput: false
-        }, function(start, end, label) {
-          
-        });
-        $('input[name="end_date"]').on('apply.daterangepicker', function(ev, picker) {
-          $(this).val(picker.startDate.format('YYYY-MM-DD'));
-        });
-      });   
-      
-      </script-->
+  <div id="foot_div" class="footer">
+    <p class="ft_logo"><img src="resource/images/ft_logo.png" alt="Alticast"></p>
+    <div class="ft_menu_box">
+    <p class="copyright">For additional information concerning this server, please contact Alticast, Inc. at</p><br>
+    <p class="copyright"><Span class="copyright_t">Alticast, Inc.</Span> 370 Interlocken Blvd, Suite 120, Broomfield, CO 80021
+      <a style="text-decoration:none" href="http://www.alticast.com"><Span class="copyright_t">www.alticast.com</Span></a></p><br>
+    <br>
+    <p class="copyright"><Span class="copyright_t">Support: </Span>Mark Millard, mmillard@alticast.com</p><br>
+    <p class="copyright">© Copyright 2020 Alticast, Inc. All rights reserved.</p>
+  </div>
 </body>
 </html>
