@@ -237,7 +237,7 @@ W.defineModule("ui/ListPanel", ["Log"], function(Log) {
         // title 
         var t = new W.Div({className: "new_line", height:40});
         t.add(new W.Image({className:"f_left", paddingTop: "9px", paddingRight:"10px", src:"bul_s_tit.png"}))
-        t.add(new W.Span({className:"f_left font_title", text:"XConf Log File List"}))
+        t.add(new W.Span({className:"f_left font_title", text:"Xconf Log File List"}))
         comp.add(t);
         // select option
         var s = new W.Div({className: "new_line", id:"selector", position: "inherit", height:40});
@@ -263,7 +263,7 @@ W.defineModule("ui/ListPanel", ["Log"], function(Log) {
         comp.add(new W.Div({className:"new_line", height:30}));
         comp.add(new W.Div({id: "paging", className:"new_line"}));
         // lower space
-        comp.add(new W.Div({className:"new_line", height:40}));
+        comp.add(new W.Div({className:"new_line", height:100}));
         return comp;
     };
 

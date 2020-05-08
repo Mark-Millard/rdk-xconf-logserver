@@ -10,6 +10,9 @@ W.defineModule("ui/TopPanel", ["Log"], function(Log) {
         comp.add(new W.Div({position:"inherit", y:61, width:"100%", height: 2, color: "rgb(0,48,87)"}))
         comp.add(new W.Image({position:"relative", float:"right", paddingRight: "40px", paddingTop: "7px",
                 src: "logo.png", }))
+        comp.add(new W.Span({position:"fixed", className:"title",
+        text:"Xconf Log Server"}));
+
         return comp;
     };
 
