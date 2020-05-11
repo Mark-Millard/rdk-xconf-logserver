@@ -473,6 +473,8 @@ func main() {
 				// Retrieve info for named file.
 				var filter LogFilter
 				filter.FileName = fileName
+				filter.SizeLower = -1
+				filter.SizeUpper = -1
 
 				var info []LogEntry
 				info, err = retrieveLogInfo(gSession, &filter)
