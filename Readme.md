@@ -27,6 +27,8 @@ follow these instructions:
         $ cd <project>
         $ export GOPATH=`pwd`
 
+Where __<project>__ is the directory where the source was cloned (i.e. __rdk-xconf-logserver__).
+
 3. Install the Go gin package:
 
         $ go get -u github.com/gin-gonic/gin
