@@ -19,6 +19,9 @@ To build the logserver for the Linux Ubuntu 18.04 LTS 64-bit platform,
 follow these instructions:
 
 1. Download the source code from the Github repository.
+
+        $ git clone git@github.com:alticast/rdk-xconf-logserver.git
+
 2. Set the GOPATH to the downloaded source code directory:
 
         $ cd <project>
