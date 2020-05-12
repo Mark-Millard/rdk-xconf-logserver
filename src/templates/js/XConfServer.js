@@ -82,7 +82,7 @@ W.defineModule("XConfServer", [
             var xhr = new XMLHttpRequest();
             var a = document.createElement('a'), file;
             
-            xhr.open('GET', 'someFile', true);
+            xhr.open('GET', fileUrl, true);
             xhr.responseType = 'blob';
             xhr.onload = function () {
                 file = new Blob([xhr.response], { type : 'application/octet-stream' });
