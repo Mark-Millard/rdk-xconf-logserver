@@ -89,7 +89,12 @@ def main():
         path = ''.join([args.tdir, "/", file_name])
         if (args.verbosity):
             print("Generating file: " + path)
-        shutil.copyfile("B827EBEADCAB_Logs_03-31-20-09-55PM.tgz", path)
+        if (i % 3) == 0:
+            shutil.copyfile("B827EBEADCAB_Logs_03-31-20-09-55PM.tgz", path)
+        elif (i % 3) == 1:
+            shutil.copyfile("BACDAEBE728B_Logs_04-12-20-06-35PM.tgz", path)
+        else:
+            shutil.copyfile("BACDDEADBEEF_Logs_05-19-20-04-13PM.tgz", path)
 
 if __name__ == '__main__':
     main()
