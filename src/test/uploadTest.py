@@ -14,87 +14,87 @@
 # limitations under the License.
 # COPYRIGHT_END
 
+# Script Dependencies
+#   To use this script, you will need to install the 'requests' module:
+#       pip install requests
+
 # Import libraries.
-from datetime import timezone
-import datetime
 import os.path
-import random
-import shutil
-import time
+import os
+import requests
 
-# Function to generate a unique MAC Address.
-def generate_mac(separator=False):
-    if separator:
-        return "%02x:%02x:%02x:%02x:%02x:%02x" % (
-            random.randint(0, 255),
-            random.randint(0, 255),
-            random.randint(0, 255),
-            random.randint(0, 255),
-            random.randint(0, 255),
-            random.randint(0, 255)
-            )
-    else:
-        return "%02x%02x%02x%02x%02x%02x" % (
-            random.randint(0, 255),
-            random.randint(0, 255),
-            random.randint(0, 255),
-            random.randint(0, 255),
-            random.randint(0, 255),
-            random.randint(0, 255)
-            )
+# Global verbosity flag.
+verbose = False
 
-# Function to generate a unique timestamp.
-def generate_timestamp() :
-    # Get the current date and time.
-    dt = datetime.datetime.now()
+# Retrieve the list of logs for the specified directory.
+def get_logs(dir):
+    global verbose
+    logs = []
 
-    # Convert to UTC.
-    utc_time = dt.replace(tzinfo = timezone.utc)
+    for file in os.listdir(dir):
+        if file.endswith(".tgz"):
+            path =  os.path.join(dir, file)
+            if (verbose):
+                print("INFO: Found log: " + path)
+            logs.append(path)
 
-    return utc_time
+    return logs
+
+# Upload log file to specified host.
+def upload_log(host, port, file):
+    global verbose
+
+    # url = "http://{{ip_address}}:8080/api/{{version}}/logs/upload"
+    url = ''.join(["http://", host, ":", port, "/api/v1/logs/upload"])
+    if (verbose):
+        print("INFO: Log server URL: ", url)
+
+    payload = {'description': 'Xconf Client Log File',
+               'contact': 'mmillard@alticast.com'}
+    files = [
+        ('filename', open(file,'rb'))
+    ]
+    # headers = {
+    #    'Content-Type': 'multipart/form-data'
+    #}
+    #response = requests.request("POST", url, headers = headers, data = payload, files = files)
+
+    response = requests.request("POST", url, data = payload, files = files)
+
+    if (verbose):
+        print(response.text.encode('utf8'))
 
 # Main program entry point.
 def main():
     # Parse input arguments.
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--num', default=1, help='number of unique files to generate', type=int)
-    parser.add_argument('--tdir', default=".", help='temporary working directory for generated logs')
-    parser.add_argument('--sleep', default=0, help='sleep (in minutes) between successive uploads', type=int)
+    parser.add_argument('--host', default="192.168.1.26", help='IP address for log server host')
+    parser.add_argument('--port', default="8080", help='port for log server host')
+    parser.add_argument('--src', default=".", help='source directory for locating logs')
     parser.add_argument('--verbosity', help='increase output verbosity', action='store_true')
     args = parser.parse_args()
 
     # Validate input arguments.
-    isdir = os.path.isdir(args.tdir)
+    isdir = os.path.isdir(args.src)
     if not isdir:
-        print("Temporary working directory does not exist.")
+        print("ERROR: Source directory does not exist.")
         return
 
-    # Generate file names.
-    for i in range(args.num):
-        # Delay successive uploads to create files that provide a larger
-        # sampling of test data.
-        if (args.sleep > 0):
-            if (args.verbosity):
-                print("    Waiting to upload...")
-            time.sleep(args.sleep * 60)
+    global verbose
+    verbose = args.verbosity
 
-        mac_address = generate_mac()
-        utc_dt = generate_timestamp()
-        timestamp = utc_dt.strftime ("%m-%d-%y-%I-%M%p")
-        
-        file_name = ''.join([mac_address.upper(), "_Logs_", timestamp, ".tgz"])
+    if (verbose):
+        print("INFO: Log Server Host: " + args.host + ":" + args.port)
 
-        # Copy template to new file.
-        path = ''.join([args.tdir, "/", file_name])
-        if (args.verbosity):
-            print("Generating file: " + path)
-        if (i % 3) == 0:
-            shutil.copyfile("B827EBEADCAB_Logs_03-31-20-09-55PM.tgz", path)
-        elif (i % 3) == 1:
-            shutil.copyfile("BACDAEBE728B_Logs_04-12-20-06-35PM.tgz", path)
-        else:
-            shutil.copyfile("BACDDEADBEEF_Logs_05-19-20-04-13PM.tgz", path)
+    # Retrieve log files.
+    logs = get_logs(args.src)
+
+    # Upload log files to the server.
+    for next in logs:
+        if (verbose):
+            print("INFO: Uploading log: " + next)
+        upload_log(args.host, args.port, next)
 
 if __name__ == '__main__':
     main()
