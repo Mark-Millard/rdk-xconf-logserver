@@ -1,4 +1,4 @@
-# Download base image Ubuntu 16.04
+# Download base image Ubuntu 18.04
 FROM ubuntu:18.04
 
 LABEL Maintaner="Mark Millard - mmillard@alticast.com"
@@ -21,7 +21,7 @@ WORKDIR /usr/src/xconf-logserver-build
 ENV PATH /usr/local/go/bin:$PATH
 
 # Install the Go dependencies and build the logserver.
-RUN git clone https://github.com/WizzerWorks/rdk-xconf-logserver.git && \
+RUN git clone https://github.com/alticast/rdk-xconf-logserver.git && \
     cd rdk-xconf-logserver && \
     git checkout module-refactor && \
     go build -o logserver ./...
