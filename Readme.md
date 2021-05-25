@@ -22,29 +22,13 @@ follow these instructions:
 
         $ git clone git@github.com:alticast/rdk-xconf-logserver.git
 
-2. Set the GOPATH to the downloaded source code directory:
+2. Do NOT set GOPATH. Setting GOPATH will conflict with using go modules (as defined by the _go.mod_ and _go.sum_ files).
 
-        $ cd <project>
-        $ export GOPATH=`pwd`
-
-Where __project__ is the directory where the source was cloned (i.e. __rdk-xconf-logserver__).
-
-3. Install the Go gin package:
-
-        $ go get -u github.com/gin-gonic/gin
-
-4. Install the Go viper package:
-
-        $ go get -u github.com/spf13/viper
-
-5. Install the Go gocql package:
-
-        $ go get -u github.com/gocql/gocql
+3. There is no need to explicitly install go library dependencies. They are handled by the go modules files.
 
 6. Build the source:
 
-        $ cd src
-        $ go build -o logserver
+        $ go build -o logserver ./...
 
 The executable, *logserver*, will be created.
 

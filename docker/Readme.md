@@ -5,7 +5,7 @@ This file contains information on how to build and run the Alticast Xconf Log Se
 Use the following command line to build the Xconf Log Server Docker image:
 
 ```
-$ docker build --no-cache --rm -t logserver:v0.1.0 .
+$ docker build --no-cache --network=host --rm -t logserver:v0.1.0 .
 ```
 
 To check whether the image was created successfully, use:
