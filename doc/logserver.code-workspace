@@ -4,5 +4,7 @@
 			"path": "../src"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"go.inferGopath": true
+	}
 }

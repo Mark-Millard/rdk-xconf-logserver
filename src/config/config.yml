@@ -5,6 +5,14 @@ logserver:
     port: 8080
     destination: "file:///opt/logserver/logs"
     encode: false
+    log:
+        file: "/opt/logserver/logs/logserver.log"
+        enable: true
+        debug: true
+        info: true
+        warn: true
+        error: true
+
 
 # Cassandra DB configuration.
 cassandra:
