@@ -1,5 +1,6 @@
 // COPYRIGHT_BEGIN
 // Copyright 2020 Alticast Inc.
+// Copyright 2022 Auteur Art & Technology, LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,8 +20,9 @@ package main
 
 // Declare imported packages.
 import (
+	"logserver/logger"
+
 	"errors"
-	"log"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -67,7 +69,8 @@ func createLogEntryQueryForUUID(uuid gocql.UUID) (string, error) {
 func filterContainsFilenameOnly(filter *LogFilter) bool {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		//log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		logger.XconfLogError("Invalid log filter: "+err.Error()+".", true)
 		return false
 	}
 
@@ -82,7 +85,8 @@ func filterContainsFilenameOnly(filter *LogFilter) bool {
 func processLogEntryQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry, error) {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to process log entry query:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to process log entry query:", err, ".")
+		logger.XconfLogError("Unable to process log entry query: "+err.Error()+".", true)
 		return nil, err
 	}
 
@@ -99,7 +103,8 @@ func processLogEntryQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry
 
 	// Retrieve values for core meta-data.
 	query, _ := createLogEntryQuery(filter)
-	log.Println("[LOGSERVER-Info] query:", query)
+	//log.Println("[LOGSERVER-Info] query:", query)
+	logger.XconfLogDebug("Cassandra DB query: "+query, true)
 
 	iter := session.Query(query).Iter()
 	for iter.Scan(&id, &fileName, &contact, &description, &location) {
@@ -114,14 +119,16 @@ func processLogEntryQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry
 		values = append(values, entry)
 	}
 	if err := iter.Close(); err != nil {
-		log.Println("[LOGSERVER-Error]", err)
+		//log.Println("[LOGSERVER-Error]", err)
+		logger.XconfLogDebug(err.Error(), true)
 		return nil, err
 	}
 
 	for i, next := range values {
 		// Find matching size data.
 		query, _ = createLogSizeQueryForUUID(next.TimeID)
-		log.Println("[LOGSERVER-Info] query:", query)
+		//log.Println("[LOGSERVER-Info] query:", query)
+		logger.XconfLogDebug("Cassandra DB query: "+query, true)
 
 		iter = session.Query(query).Iter()
 		if iter.NumRows() == 0 {
@@ -134,13 +141,15 @@ func processLogEntryQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry
 			values[i].Size = fileSize
 		}
 		if err := iter.Close(); err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 
 		// Find matching owner data.
 		query, _ = createLogOwnerQueryForUUID(next.TimeID)
-		log.Println("[LOGSERVER-Info] query:", query)
+		//log.Println("[LOGSERVER-Info] query:", query)
+		logger.XconfLogDebug("Cassandra DB query: "+query, true)
 
 		iter = session.Query(query).Iter()
 		if iter.NumRows() == 0 {
@@ -153,13 +162,15 @@ func processLogEntryQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry
 			values[i].Owner = owner
 		}
 		if err := iter.Close(); err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 
 		// Find matching create_date data.
 		query, _ = createLogTimestampQueryForUUID(next.TimeID)
-		log.Println("[LOGSERVER-Info] query:", query)
+		//log.Println("[LOGSERVER-Info] query:", query)
+		logger.XconfLogDebug("Cassandra DB query: "+query, true)
 
 		iter = session.Query(query).Iter()
 		if iter.NumRows() == 0 {
@@ -179,7 +190,8 @@ func processLogEntryQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry
 func filterContainsFilenameAndSizeRange(filter *LogFilter) bool {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		//log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		logger.XconfLogError("Invalid log filter: "+err.Error()+".", true)
 		return false
 	}
 
@@ -194,17 +206,20 @@ func filterContainsFilenameAndSizeRange(filter *LogFilter) bool {
 func processFilenameAndSizeQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry, error) {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		logger.XconfLogError("Unable to process Cassandra query: "+err.Error()+".", true)
 		return nil, err
 	}
 	if filter.FileName == "" {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		logger.XconfLogError("Unable to process Cassandra query: "+err.Error()+".", true)
 		return nil, err
 	}
 	if !validSizeRange(filter.SizeLower, filter.SizeUpper) {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		logger.XconfLogError("Unable to process Cassandra query: "+err.Error()+".", true)
 		return nil, err
 	}
 
@@ -213,7 +228,8 @@ func processFilenameAndSizeQuery(session *gocql.Session, filter *LogFilter) ([]L
 	var err error
 	values, err = processLogEntryQuery(session, filter)
 	if err != nil {
-		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		logger.XconfLogError("Unable to process Cassandra query: "+err.Error()+".", true)
 		return nil, err
 	}
 
@@ -235,7 +251,8 @@ func processFilenameAndSizeQuery(session *gocql.Session, filter *LogFilter) ([]L
 func filterContainsFilenameAndDateRange(filter *LogFilter) bool {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		//log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		logger.XconfLogError("Invalid log filter: "+err.Error()+".", true)
 		return false
 	}
 
@@ -250,17 +267,20 @@ func filterContainsFilenameAndDateRange(filter *LogFilter) bool {
 func processFilenameAndCreateDateQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry, error) {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		logger.XconfLogError("Unable to process Cassandra query: "+err.Error()+".", true)
 		return nil, err
 	}
 	if filter.FileName == "" {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		logger.XconfLogError("Unable to process Cassandra query: "+err.Error()+".", true)
 		return nil, err
 	}
 	if !validDateRange(filter.CreateDateLower, filter.CreateDateUpper) {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		logger.XconfLogError("Unable to process Cassandra query: "+err.Error()+".", true)
 		return nil, err
 	}
 
@@ -269,7 +289,8 @@ func processFilenameAndCreateDateQuery(session *gocql.Session, filter *LogFilter
 	var err error
 	values, err = processLogEntryQuery(session, filter)
 	if err != nil {
-		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		logger.XconfLogError("Unable to process Cassandra query: "+err.Error()+".", true)
 		return nil, err
 	}
 
@@ -291,7 +312,8 @@ func processFilenameAndCreateDateQuery(session *gocql.Session, filter *LogFilter
 func filterContainsFilenameAndSizeRangeAndDateRange(filter *LogFilter) bool {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		//log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		logger.XconfLogError("Invalid log filter: "+err.Error()+".", true)
 		return false
 	}
 
@@ -306,22 +328,26 @@ func filterContainsFilenameAndSizeRangeAndDateRange(filter *LogFilter) bool {
 func processFilenameAndSizeAndCreateDateQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry, error) {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		logger.XconfLogError("Unable to process Cassandra query: "+err.Error()+".", true)
 		return nil, err
 	}
 	if filter.FileName == "" {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		logger.XconfLogError("Unable to process Cassandra query: "+err.Error()+".", true)
 		return nil, err
 	}
 	if !validSizeRange(filter.SizeLower, filter.SizeUpper) {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		logger.XconfLogError("Unable to process Cassandra query: "+err.Error()+".", true)
 		return nil, err
 	}
 	if !validDateRange(filter.CreateDateLower, filter.CreateDateUpper) {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		logger.XconfLogError("Unable to process Cassandra query: "+err.Error()+".", true)
 		return nil, err
 	}
 
@@ -330,7 +356,8 @@ func processFilenameAndSizeAndCreateDateQuery(session *gocql.Session, filter *Lo
 	var err error
 	values, err = processLogEntryQuery(session, filter)
 	if err != nil {
-		log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to process Cassandra query:", err, ".")
+		logger.XconfLogError("Unable to process Cassandra query: "+err.Error()+".", true)
 		return nil, err
 	}
 

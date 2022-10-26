@@ -20,14 +20,13 @@ package main
 
 // Declare imported packages.
 import (
-	"fmt"
 	"logserver/logger"
 
 	"bytes"
 	b64 "encoding/base64"
 	"errors"
 
-	//	"fmt"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"

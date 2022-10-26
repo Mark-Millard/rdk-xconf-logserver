@@ -1,5 +1,6 @@
 // COPYRIGHT_BEGIN
 // Copyright 2020 Alticast Inc.
+// Copyright 2022 Auteur Art & Technology, LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +20,8 @@ package main
 
 // Declare imported packages.
 import (
+	"logserver/logger"
+
 	"errors"
 	"log"
 	"path/filepath"
@@ -61,7 +64,8 @@ func openSession(hosts []string) (*gocql.Session, error) {
 	// Validate input arguments.
 	if len(hosts) == 0 {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to open a cassandra session:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to open a cassandra session:", err, ".")
+		logger.XconfLogError("Unable to open a cassandra session: "+err.Error()+".", true)
 		return nil, err
 	}
 
@@ -71,7 +75,8 @@ func openSession(hosts []string) (*gocql.Session, error) {
 	cluster.Consistency = gocql.Quorum
 	session, err := cluster.CreateSession()
 	if err != nil {
-		log.Println("[LOGSERVER-Error] Unable to create a cassandra session:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to create a cassandra session:", err, ".")
+		logger.XconfLogError("Unable to open a cassandra session: "+err.Error()+".", true)
 	}
 
 	return session, err
@@ -82,7 +87,8 @@ func closeSession(session *gocql.Session) error {
 	// Validate input arguments.
 	if session == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to close a cassandra session:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to close a cassandra session:", err, ".")
+		logger.XconfLogError("Unable to close a cassandra session: "+err.Error()+".", true)
 		return err
 	}
 
@@ -96,12 +102,14 @@ func registerLog(session *gocql.Session, entry *LogEntry) error {
 	// Validate input arguments.
 	if session == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to register a log:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to register a log:", err, ".")
+		logger.XconfLogError("Unable to register a log: "+err.Error()+".", true)
 		return err
 	}
 	if entry == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to register a log:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to register a log:", err, ".")
+		logger.XconfLogError("Unable to register a log: "+err.Error()+".", true)
 		return err
 	}
 
@@ -135,12 +143,14 @@ func unregisterLog(session *gocql.Session, entry *LogEntry) error {
 	// Validate input arguments.
 	if session == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to unregister a log:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to unregister a log:", err, ".")
+		logger.XconfLogError("Unable to unregister a log: "+err.Error()+".", true)
 		return err
 	}
 	if entry == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to unregister a log:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to unregister a log:", err, ".")
+		logger.XconfLogError("Unable to unregister a log: "+err.Error()+".", true)
 		return err
 	}
 
@@ -148,22 +158,26 @@ func unregisterLog(session *gocql.Session, entry *LogEntry) error {
 	var err error
 	if err = session.Query(`DELETE FROM "LogEntry" WHERE time_id = ? AND file_name = ?`,
 		entry.TimeID, entry.FileName).Exec(); err != nil {
-		log.Println("[LOGSERVER-Error]", err)
+		//log.Println("[LOGSERVER-Error]", err)
+		logger.XconfLogError(err.Error(), true)
 		return err
 	}
 	if err = session.Query(`DELETE FROM "LogOwner" WHERE time_id = ? AND owner = ?`,
 		entry.TimeID, entry.Owner).Exec(); err != nil {
-		log.Println("[LOGSERVER-Error]", err)
+		//log.Println("[LOGSERVER-Error]", err)
+		logger.XconfLogError(err.Error(), true)
 		return err
 	}
 	if err = session.Query(`DELETE FROM "LogSize" WHERE time_id = ? AND size = ?`,
 		entry.TimeID, entry.Size).Exec(); err != nil {
-		log.Println("[LOGSERVER-Error]", err)
+		//log.Println("[LOGSERVER-Error]", err)
+		logger.XconfLogError(err.Error(), true)
 		return err
 	}
 	if err = session.Query(`DELETE FROM "LogTimestamp" WHERE time_id = ? AND create_date = ?`,
 		entry.TimeID, entry.CreateDate).Exec(); err != nil {
-		log.Println("[LOGSERVER-Error]", err)
+		//log.Println("[LOGSERVER-Error]", err)
+		logger.XconfLogError(err.Error(), true)
 		return err
 	}
 
@@ -191,7 +205,8 @@ func parseDate(dateStr string) (*time.Time, error) {
 		str = strings.TrimSuffix(dateStr, "PM")
 	} else {
 		err = errors.New("illegal date format")
-		log.Println("[LOGSERVER-Error]", err)
+		//log.Println("[LOGSERVER-Error]", err)
+		logger.XconfLogError(err.Error(), true)
 		return nil, err
 	}
 
@@ -199,7 +214,8 @@ func parseDate(dateStr string) (*time.Time, error) {
 	parts := strings.Split(str, "-")
 	if len(parts) != 5 {
 		err = errors.New("illegal date format")
-		log.Println("[LOGSERVER-Error]", err)
+		//log.Println("[LOGSERVER-Error]", err)
+		logger.XconfLogError(err.Error(), true)
 		return nil, nil
 	}
 	month := parts[0]
@@ -274,11 +290,13 @@ func parseFilename(name string) (string, *time.Time, error) {
 		// Parse the date component.
 		createDate, err = parseDate(sDate)
 		if err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 		}
 	} else {
 		err = errors.New("illegal filename format")
-		log.Println("[LOGSERVER-Error]", err)
+		//log.Println("[LOGSERVER-Error]", err)
+		logger.XconfLogError(err.Error(), true)
 	}
 
 	return owner, createDate, err
@@ -342,7 +360,8 @@ func createQuery(filter *LogEntry) (string, error) {
 func filterIsEmpty(filter *LogFilter) bool {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		//log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		logger.XconfLogError("Invalid log filter: "+err.Error()+".", true)
 		return false
 	}
 
@@ -358,12 +377,14 @@ func retrieveLogInfo(session *gocql.Session, filter *LogFilter) ([]LogEntry, err
 	// Validate input arguments.
 	if session == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to register a log:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to register a log:", err, ".")
+		logger.XconfLogError("Unable to register a log: "+err.Error()+".", true)
 		return nil, err
 	}
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to register a log:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to register a log:", err, ".")
+		logger.XconfLogError("Unable to register a log: "+err.Error()+".", true)
 		return nil, err
 	}
 
@@ -372,49 +393,56 @@ func retrieveLogInfo(session *gocql.Session, filter *LogFilter) ([]LogEntry, err
 		var err error
 		values, err = processLogEntryQuery(session, filter)
 		if err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 	} else if filterContainsSizeOnly(filter) || filterContainsSizeRangeOnly(filter) {
 		var err error
 		values, err = processSizeQuery(session, filter.SizeLower, filter.SizeUpper)
 		if err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 	} else if filterContainsOwnerOnly(filter) {
 		var err error
 		values, err = processOwnerQuery(session, filter)
 		if err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 	} else if filterContainsCreateDateOnly(filter) || filterContainsCreateDateRangeOnly(filter) {
 		var err error
 		values, err = processCreateDateQuery(session, filter.CreateDateLower, filter.CreateDateUpper)
 		if err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 	} else if filterContainsFilenameAndSizeRange(filter) {
 		var err error
 		values, err = processFilenameAndSizeQuery(session, filter)
 		if err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 	} else if filterContainsFilenameAndDateRange(filter) {
 		var err error
 		values, err = processFilenameAndCreateDateQuery(session, filter)
 		if err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 	} else if filterContainsFilenameAndSizeRangeAndDateRange(filter) {
 		var err error
 		values, err = processFilenameAndSizeAndCreateDateQuery(session, filter)
 		if err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 	} else {
