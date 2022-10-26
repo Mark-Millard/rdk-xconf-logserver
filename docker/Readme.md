@@ -1,6 +1,22 @@
-This file contains information on how to build and run the Alticast Xconf Log Server using Docker.
+This file contains information on how to build and run the Xconf Log Server components using Docker.
 
-# Build Docker Image
+# Build Cassandra DB Docker Image
+
+Use the following command line to build the Cassandra DB Docker image:
+
+```
+$ docker build -f Dockerfile.cassandra --no-cache --network=host --rm -t dbserver:v0.1.0 .
+```
+
+To check whether the image was created successfully, use:
+
+```
+$ docker image ls -a
+```
+
+You should see a REPOSITORY image listing for "dbserver" with the build TAG "v0.1.0".
+
+# Build Xconf Log Server Docker Image
 
 Use the following command line to build the Xconf Log Server Docker image:
 

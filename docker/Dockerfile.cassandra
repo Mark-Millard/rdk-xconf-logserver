@@ -1,0 +1,22 @@
+# Download base image Cassandra
+FROM cassandra:3.11.9
+
+LABEL Maintaner="Mark Millard - mark.s.millard@gmail.com"
+
+# Install the DB Schema files.
+#COPY aotaserver_db.cql docker-entrypoint-initdb.d/
+#COPY aotaauthorization_db.cql docker-entrypoint-initdb.d/
+#COPY aotacasbin_db.cql docker-entrypoint-initdb.d/
+
+# Install the entrypoint shell script that will be used to load
+# the above schemas.
+COPY cassandra-docker-entrypoint.sh /docker-entrypoint.sh
+
+# Make sure the entrypoint script is executable.
+RUN ls -la *.sh; chmod +x *.sh; ls -la *.sh
+
+# Declare the entrypoint for running the container.
+ENTRYPOINT ["/docker-entrypoint.sh"]
+
+# Execute the Cassandra DB.
+CMD ["cassandra", "-f"]

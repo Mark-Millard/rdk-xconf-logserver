@@ -1,6 +1,6 @@
-# Alticast Xconf Log Server
+# Xconf Log Server
 
-The Alticast Xconf logserver is a simple file server written in the Go Language.
+The Xconf logserver is a simple file server written in the Go Language.
 It may be used to upload files to the server and stored to the local file
 system. Uploaded files may also be downloaded via the Web UI or a REST API.
 
@@ -53,7 +53,7 @@ The JSON message **{"message":"pong"}** will be returned upon success.
 
 ## Configuration
 
-The Alticast logserver uses a ***config.yml*** file to configure its behavior.
+The logserver uses a ***config.yml*** file to configure its behavior.
 The configuration file may be located in either the */etc/logserver*,
 */opt/logserver/config*, or *$HOME/.logserver* directory.
 
