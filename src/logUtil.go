@@ -1,4 +1,5 @@
 // COPYRIGHT_BEGIN
+// Copyright 2020 Alticast Inc.
 // Copyright 2022 Auteur Art & Technology, LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,12 +22,17 @@ package main
 import (
 	"logserver/logger"
 
+	"bytes"
+	b64 "encoding/base64"
 	"errors"
+	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/url"
 	"os"
 	"path/filepath"
 
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 )
 
@@ -142,4 +148,100 @@ func deleteLog(fileName string) error {
 	}
 
 	return nil
+}
+
+// Upload the file.
+func upload(context *gin.Context, file *multipart.FileHeader) error {
+	// Open the file for
+	src, err := file.Open()
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	// Read file into buffer.
+	buf := bytes.NewBuffer(nil)
+	if _, err = io.Copy(buf, src); err != nil {
+		return err
+	}
+
+	// Encode file into base64.
+	useEncode := viper.GetBool("logserver.encode")
+	var content []byte
+	if useEncode {
+		sEnc := encode(buf)
+		if sEnc == "" {
+			return errors.New("unable to encode file")
+		}
+		content = []byte(sEnc)
+	} else {
+		content = buf.Bytes()
+	}
+
+	// Send encoded buffer to output URL (specified in config file)
+	filename := filepath.Base(file.Filename)
+	if err = saveLog(content, filename); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// LogDownloadEntry provides information for a log asset,
+// one that is being downloaded from the log server.
+type LogDownloadEntry struct {
+	Name string      // The name of the log.
+	Path string      // The URL for the log.
+	File os.FileInfo // A reference to the downloaded file.
+}
+
+// Retrieve the logs from the server.
+func getLogs(src string) ([]LogDownloadEntry, error) {
+	var logs []LogDownloadEntry
+	//log.Println("[LOGSERVER-Info] Reading logs from " + src + ".")
+	logger.XconfLogDebug("Retrieving logs from "+src+".", true)
+
+	// The expectation is that the source is specified as a formal URL.
+	u, err := url.Parse(src)
+	if err != nil {
+		//log.Println("[LOGSERVER-Error] Unable to parse source URL " + src + ".")
+		logger.XconfLogError("Unable to parse source URL "+src+".", true)
+		return nil, err
+	}
+
+	if u.Scheme == "file" {
+		// Logs are stored locally on the server.
+		files, err := ioutil.ReadDir(u.Path)
+		if err != nil {
+			//log.Println("[LOGSERVER-Error] Unable to read directory " + u.Path + ".")
+			logger.XconfLogError("Unable to read directory "+u.Path+".", true)
+			return nil, err
+		}
+
+		logs = []LogDownloadEntry{}
+
+		for _, f := range files {
+			//log.Println("[LOGSERVER-Info] Found log file " + f.Name() + ".")
+			logger.XconfLogDebug("Found log file "+f.Name()+".", true)
+			entry := LogDownloadEntry{Name: f.Name(), Path: u.Path, File: f}
+			logs = append(logs, entry)
+		}
+
+	} else if u.Scheme == "http" {
+		//log.Println("[LOGSERVER-Info] Retrieving logs from " + u.Path + ".")
+		logger.XconfLogInfo("Retrieving logs from "+u.Path+".", true)
+		// Todo: retrieve logs from HTTP server.
+	} else {
+		//log.Println("[LOGSERVER-Error] Unsupported source URL " + src + ".")
+		logger.XconfLogError("Unsupported source URL "+src+".", true)
+		return nil, errors.New("unable to upload file")
+	}
+
+	return logs, nil
+}
+
+// Encode the file as base64 string.
+func encode(buf *bytes.Buffer) string {
+	sEnc := b64.StdEncoding.EncodeToString(buf.Bytes())
+	return sEnc
 }
