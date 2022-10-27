@@ -1,5 +1,6 @@
 // COPYRIGHT_BEGIN
 // Copyright 2020 Alticast Inc.
+// Copyright 2022 Auteur Art & Technology, LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,8 +20,9 @@ package main
 
 // Declare imported packages.
 import (
+	"logserver/logger"
+
 	"errors"
-	"log"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -104,7 +106,8 @@ func createLogTimestampQueryForUUID(uuid gocql.UUID) (string, error) {
 func filterContainsCreateDateOnly(filter *LogFilter) bool {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		//log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		logger.XconfLogError("Invalid log filter: "+err.Error()+".", true)
 		return false
 	}
 
@@ -119,7 +122,8 @@ func filterContainsCreateDateOnly(filter *LogFilter) bool {
 func filterContainsCreateDateRangeOnly(filter *LogFilter) bool {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		//log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		logger.XconfLogError("Invalid log filter: "+err.Error()+".", true)
 		return false
 	}
 
@@ -152,7 +156,8 @@ func validDateRange(lowerBound time.Time, upperBound time.Time) bool {
 func processCreateDateQuery(session *gocql.Session, lowerBound time.Time, upperBound time.Time) ([]LogEntry, error) {
 	if !validDateRange(lowerBound, upperBound) {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to process create_date query:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to process create_date query:", err, ".")
+		logger.XconfLogError("Unable to process create_date query: "+err.Error()+".", true)
 		return nil, err
 	}
 
@@ -174,7 +179,8 @@ func processCreateDateQuery(session *gocql.Session, lowerBound time.Time, upperB
 	} else {
 		query, _ = createLogTimestampRangeQuery(lowerBound, upperBound)
 	}
-	log.Println("[LOGSERVER-Info] query:", query)
+	//log.Println("[LOGSERVER-Info] query:", query)
+	logger.XconfLogDebug("Cassandra DB query: "+query, true)
 
 	iter := session.Query(query).Iter()
 	for iter.Scan(&id, &createDate) {
@@ -186,14 +192,16 @@ func processCreateDateQuery(session *gocql.Session, lowerBound time.Time, upperB
 		values = append(values, entry)
 	}
 	if err := iter.Close(); err != nil {
-		log.Println("[LOGSERVER-Error]", err)
+		//log.Println("[LOGSERVER-Error]", err)
+		logger.XconfLogError(err.Error(), true)
 		return nil, err
 	}
 
 	for i, next := range values {
 		// Find matching log entry data.
 		query, _ = createLogEntryQueryForUUID(next.TimeID)
-		log.Println("[LOGSERVER-Info] query:", query)
+		//log.Println("[LOGSERVER-Info] query:", query)
+		logger.XconfLogDebug("Cassandra DB query: "+query, true)
 
 		iter = session.Query(query).Iter()
 		if iter.NumRows() == 0 {
@@ -209,13 +217,15 @@ func processCreateDateQuery(session *gocql.Session, lowerBound time.Time, upperB
 			values[i].Location = location
 		}
 		if err := iter.Close(); err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 
 		// Find matching size data.
 		query, _ = createLogSizeQueryForUUID(next.TimeID)
-		log.Println("[LOGSERVER-Info] query:", query)
+		//log.Println("[LOGSERVER-Info] query:", query)
+		logger.XconfLogDebug("Cassandra DB query: "+query, true)
 
 		iter = session.Query(query).Iter()
 		if iter.NumRows() == 0 {
@@ -228,13 +238,15 @@ func processCreateDateQuery(session *gocql.Session, lowerBound time.Time, upperB
 			values[i].Size = fileSize
 		}
 		if err := iter.Close(); err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 
 		// Find matching owner data.
 		query, _ = createLogOwnerQueryForUUID(next.TimeID)
-		log.Println("[LOGSERVER-Info] query:", query)
+		//log.Println("[LOGSERVER-Info] query:", query)
+		logger.XconfLogDebug("Cassandra DB query: "+query, true)
 
 		iter = session.Query(query).Iter()
 		if iter.NumRows() == 0 {
@@ -247,7 +259,8 @@ func processCreateDateQuery(session *gocql.Session, lowerBound time.Time, upperB
 			values[i].Owner = owner
 		}
 		if err := iter.Close(); err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 	}

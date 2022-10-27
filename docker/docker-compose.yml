@@ -1,0 +1,45 @@
+version: "3.3"
+services:
+  cassandra:
+    build:
+      context: .
+      dockerfile: Dockerfile.cassandra
+    image: "casserver:v0.1.0"
+    volumes:
+      - /opt/logserver/cassandra:/var/lib/cassandra
+    networks:
+      xconf-logserver-network:
+        ipv4_address: 172.24.2.1
+
+  redis:
+    image: "redis/redis-stack-server:latest"
+    ports:
+      - "6379:6379"
+    networks:
+      xconf-logserver-network:
+        ipv4_address: 172.24.2.2
+
+  logserver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: logserver:v0.1.0
+    ports:
+      - "8080:8080"
+    volumes:
+      - /opt/logserver/logs:/opt/logserver/logs
+      - /opt/logserver/packages:/opt/logserver/packages
+    networks:
+      xconf-logserver-network:
+        ipv4_address: 172.24.2.3
+    depends_on:
+      - cassandra
+      - redis
+
+networks:
+    xconf-logserver-network:
+        driver: bridge
+        ipam:
+            driver: default
+            config:
+                - subnet: "172.24.2.0/16"

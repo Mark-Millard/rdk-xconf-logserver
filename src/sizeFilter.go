@@ -1,5 +1,6 @@
 // COPYRIGHT_BEGIN
 // Copyright 2020 Alticast Inc.
+// Copyright 2022 Auteur Art & Technology, LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,8 +20,9 @@ package main
 
 // Declare imported packages.
 import (
+	"logserver/logger"
+
 	"errors"
-	"log"
 	"strconv"
 	"time"
 
@@ -105,7 +107,8 @@ func createLogSizeQueryForUUID(uuid gocql.UUID) (string, error) {
 func filterContainsSizeOnly(filter *LogFilter) bool {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		//log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		logger.XconfLogError("Invalid log filter: "+err.Error()+".", true)
 		return false
 	}
 
@@ -120,7 +123,8 @@ func filterContainsSizeOnly(filter *LogFilter) bool {
 func filterContainsSizeRangeOnly(filter *LogFilter) bool {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		//log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		logger.XconfLogError("Invalid log filter: "+err.Error()+".", true)
 		return false
 	}
 
@@ -153,7 +157,8 @@ func validSizeRange(lowerBound int64, upperBound int64) bool {
 func processSizeQuery(session *gocql.Session, lowerBound int64, upperBound int64) ([]LogEntry, error) {
 	if !validSizeRange(lowerBound, upperBound) {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to process size query:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to process size query:", err, ".")
+		logger.XconfLogError("Unable to process size query: "+err.Error()+".", true)
 		return nil, err
 	}
 
@@ -175,7 +180,8 @@ func processSizeQuery(session *gocql.Session, lowerBound int64, upperBound int64
 	} else {
 		query, _ = createLogSizeRangeQuery(lowerBound, upperBound)
 	}
-	log.Println("[LOGSERVER-Info] query:", query)
+	//log.Println("[LOGSERVER-Info] query:", query)
+	logger.XconfLogDebug("Cassandra DB query: "+query, true)
 
 	iter := session.Query(query).Iter()
 	for iter.Scan(&id, &fileSize) {
@@ -187,14 +193,16 @@ func processSizeQuery(session *gocql.Session, lowerBound int64, upperBound int64
 		values = append(values, entry)
 	}
 	if err := iter.Close(); err != nil {
-		log.Println("[LOGSERVER-Error]", err)
+		//log.Println("[LOGSERVER-Error]", err)
+		logger.XconfLogError(err.Error(), true)
 		return nil, err
 	}
 
 	for i, next := range values {
 		// Find matching log entry data.
 		query, _ = createLogEntryQueryForUUID(next.TimeID)
-		log.Println("[LOGSERVER-Info] query:", query)
+		//log.Println("[LOGSERVER-Info] query:", query)
+		logger.XconfLogDebug("Cassandra DB query: "+query, true)
 
 		iter = session.Query(query).Iter()
 		if iter.NumRows() == 0 {
@@ -210,13 +218,15 @@ func processSizeQuery(session *gocql.Session, lowerBound int64, upperBound int64
 			values[i].Location = location
 		}
 		if err := iter.Close(); err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 
 		// Find matching owner data.
 		query, _ = createLogOwnerQueryForUUID(next.TimeID)
-		log.Println("[LOGSERVER-Info] query:", query)
+		//log.Println("[LOGSERVER-Info] query:", query)
+		logger.XconfLogDebug("Cassandra DB query: "+query, true)
 
 		iter = session.Query(query).Iter()
 		if iter.NumRows() == 0 {
@@ -229,13 +239,15 @@ func processSizeQuery(session *gocql.Session, lowerBound int64, upperBound int64
 			values[i].Owner = owner
 		}
 		if err := iter.Close(); err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 
 		// Find matching create_date data.
 		query, _ = createLogTimestampQueryForUUID(next.TimeID)
-		log.Println("[LOGSERVER-Info] query:", query)
+		//log.Println("[LOGSERVER-Info] query:", query)
+		logger.XconfLogDebug("Cassandra DB query: "+query, true)
 
 		iter = session.Query(query).Iter()
 		if iter.NumRows() == 0 {
@@ -248,7 +260,8 @@ func processSizeQuery(session *gocql.Session, lowerBound int64, upperBound int64
 			values[i].CreateDate = createDate
 		}
 		if err := iter.Close(); err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 	}

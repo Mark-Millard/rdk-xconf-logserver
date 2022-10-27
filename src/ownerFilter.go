@@ -1,5 +1,6 @@
 // COPYRIGHT_BEGIN
 // Copyright 2020 Alticast Inc.
+// Copyright 2022 Auteur Art & Technology, LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,8 +20,9 @@ package main
 
 // Declare imported packages.
 import (
+	"logserver/logger"
+
 	"errors"
-	"log"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -70,7 +72,8 @@ func createLogOwnerQueryForUUID(uuid gocql.UUID) (string, error) {
 func filterContainsOwnerOnly(filter *LogFilter) bool {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		//log.Println("[LOGSERVER-Error] Invalid log filter:", err, ".")
+		logger.XconfLogError("Invalid log filter: "+err.Error()+".", true)
 		return false
 	}
 
@@ -85,7 +88,8 @@ func filterContainsOwnerOnly(filter *LogFilter) bool {
 func processOwnerQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry, error) {
 	if filter == nil {
 		err := errors.New("invalid input argument")
-		log.Println("[LOGSERVER-Error] Unable to process owner query:", err, ".")
+		//log.Println("[LOGSERVER-Error] Unable to process owner query:", err, ".")
+		logger.XconfLogError("Unable to process owner query: "+err.Error()+".", true)
 		return nil, err
 	}
 
@@ -102,7 +106,8 @@ func processOwnerQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry, e
 
 	// Retrieve values for owner meta-data.
 	query, _ := createLogOwnerQuery(filter.Owner)
-	log.Println("[LOGSERVER-Info] query:", query)
+	//log.Println("[LOGSERVER-Info] query:", query)
+	logger.XconfLogDebug("Cassandra DB query: "+query, true)
 
 	iter := session.Query(query).Iter()
 	for iter.Scan(&id, &owner) {
@@ -114,14 +119,16 @@ func processOwnerQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry, e
 		values = append(values, entry)
 	}
 	if err := iter.Close(); err != nil {
-		log.Println("[LOGSERVER-Error]", err)
+		//log.Println("[LOGSERVER-Error]", err)
+		logger.XconfLogError(err.Error(), true)
 		return nil, err
 	}
 
 	for i, next := range values {
 		// Find matching log entry data.
 		query, _ = createLogEntryQueryForUUID(next.TimeID)
-		log.Println("[LOGSERVER-Info] query:", query)
+		//log.Println("[LOGSERVER-Info] query:", query)
+		logger.XconfLogDebug("Cassandra DB query: "+query, true)
 
 		iter = session.Query(query).Iter()
 		if iter.NumRows() == 0 {
@@ -137,13 +144,15 @@ func processOwnerQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry, e
 			values[i].Location = location
 		}
 		if err := iter.Close(); err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 
 		// Find matching size data.
 		query, _ = createLogSizeQueryForUUID(next.TimeID)
-		log.Println("[LOGSERVER-Info] query:", query)
+		//log.Println("[LOGSERVER-Info] query:", query)
+		logger.XconfLogDebug("Cassandra DB query: "+query, true)
 
 		iter = session.Query(query).Iter()
 		if iter.NumRows() == 0 {
@@ -156,13 +165,15 @@ func processOwnerQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry, e
 			values[i].Size = fileSize
 		}
 		if err := iter.Close(); err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 
 		// Find matching create_date data.
 		query, _ = createLogTimestampQueryForUUID(next.TimeID)
-		log.Println("[LOGSERVER-Info] query:", query)
+		//log.Println("[LOGSERVER-Info] query:", query)
+		logger.XconfLogDebug("Cassandra DB query: "+query, true)
 
 		iter = session.Query(query).Iter()
 		if iter.NumRows() == 0 {
@@ -175,7 +186,8 @@ func processOwnerQuery(session *gocql.Session, filter *LogFilter) ([]LogEntry, e
 			values[i].CreateDate = createDate
 		}
 		if err := iter.Close(); err != nil {
-			log.Println("[LOGSERVER-Error]", err)
+			//log.Println("[LOGSERVER-Error]", err)
+			logger.XconfLogError(err.Error(), true)
 			return nil, err
 		}
 	}
