@@ -113,7 +113,7 @@ func main() {
 	router.DELETE("/api/v1/logs/:name", DeleteLog)
 
 	// Handler for GET REST API, http://<ip_address>:<port>/api/v1/logs/info.
-	router.GET("/api/v1/logs/info", GetInfo)
+	router.GET("/api/v1/logs/info", GetLogInfo)
 
 	// Handler for REST API, http://<ip_address>:<port>/index. Web UI.
 	router.LoadHTMLGlob("templates/index.html")
