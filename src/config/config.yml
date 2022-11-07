@@ -1,6 +1,6 @@
 # Configuration file for Xconf Log Server.
 
-# Alticast Xconf Log Server configuration.
+# Xconf Log Server configuration.
 logserver:
     port: 8080
     destination: "file:///opt/logserver/logs"
@@ -19,3 +19,7 @@ cassandra:
     hosts: [
         "172.18.0.2"
     ]
+    reconnection:
+        tries: 10
+        interval: 5
+    keyspace: "LogDataService"

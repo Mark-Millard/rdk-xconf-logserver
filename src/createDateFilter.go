@@ -36,7 +36,7 @@ func createLogTimestampQuery(createDate time.Time) (string, error) {
 	var parts []string
 
 	parts = make([]string, 0)
-	parts = append(parts, "SELECT time_id, create_date FROM \"LogTimestamp\"")
+	parts = append(parts, "SELECT time_id, create_date FROM \"LogDataService\".\"LogTimestamp\"")
 	if !createDate.IsZero() {
 		createDateStr := createDate.Format(time.RFC3339)
 		parts = append(parts, " Where create_date = '")
@@ -58,7 +58,7 @@ func createLogTimestampRangeQuery(lowerBound time.Time, upperBound time.Time) (s
 	var lowerSpecified bool = false
 
 	parts = make([]string, 0)
-	parts = append(parts, "SELECT time_id, create_date FROM \"LogTimestamp\"")
+	parts = append(parts, "SELECT time_id, create_date FROM \"LogDataService\".\"LogTimestamp\"")
 	if !lowerBound.IsZero() {
 		createDateStr := lowerBound.Format(time.RFC3339)
 		parts = append(parts, " WHERE create_date >= '")
@@ -90,7 +90,7 @@ func createLogTimestampQueryForUUID(uuid gocql.UUID) (string, error) {
 	var parts []string
 
 	parts = make([]string, 0)
-	parts = append(parts, "SELECT time_id, create_date FROM \"LogTimestamp\"")
+	parts = append(parts, "SELECT time_id, create_date FROM \"LogDataService\".\"LogTimestamp\"")
 	parts = append(parts, " WHERE time_id = ")
 	parts = append(parts, uuid.String())
 

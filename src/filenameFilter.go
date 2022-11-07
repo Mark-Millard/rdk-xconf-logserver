@@ -33,7 +33,7 @@ func createLogEntryQuery(filter *LogFilter) (string, error) {
 	var parts []string
 
 	parts = make([]string, 0)
-	parts = append(parts, "SELECT time_id, file_name, contact, description, location FROM \"LogEntry\"")
+	parts = append(parts, "SELECT time_id, file_name, contact, description, location FROM \"LogDataService\".\"LogEntry\"")
 	if filter.FileName != "" {
 		parts = append(parts, " WHERE file_name = '")
 		parts = append(parts, filter.FileName+"'")
@@ -53,7 +53,7 @@ func createLogEntryQueryForUUID(uuid gocql.UUID) (string, error) {
 	var parts []string
 
 	parts = make([]string, 0)
-	parts = append(parts, "SELECT time_id, file_name, contact, description, location FROM \"LogEntry\"")
+	parts = append(parts, "SELECT time_id, file_name, contact, description, location FROM \"LogDataService\".\"LogEntry\"")
 	parts = append(parts, " WHERE time_id = ")
 	parts = append(parts, uuid.String())
 

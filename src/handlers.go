@@ -19,6 +19,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"logserver/logger"
 	"net/http"
@@ -85,7 +86,7 @@ func UploadLog(c *gin.Context) {
 		}
 
 		// Register the meta-data with the database.
-		err = registerLog(gSession, &entry)
+		err = LogServer.RegisterLog(&entry)
 		if err != nil {
 			//log.Println("[LOGSERVER-Error] Unable to register meta-data for log,", entry.FileName)
 			logger.XconfLogError("Unable to register meta-data for log,"+entry.FileName, true)
@@ -251,7 +252,7 @@ func DeleteLog(c *gin.Context) {
 			filter.SizeUpper = -1
 
 			var info []LogEntry
-			info, err = retrieveLogInfo(gSession, &filter)
+			info, err = LogServer.RetrieveLogInfo(&filter)
 			if err != nil {
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 					"message": "Info retrieval error",
@@ -261,7 +262,7 @@ func DeleteLog(c *gin.Context) {
 			}
 
 			// Unregister the database entry.
-			err = unregisterLog(gSession, &info[0])
+			err = LogServer.UnregisterLog(&info[0])
 			if err != nil {
 				//log.Println("[LOGSERVER-Error] Unable to unregister log.")
 				logger.XconfLogError("Unable to unregister log.", true)
@@ -309,9 +310,35 @@ func DeleteLog(c *gin.Context) {
 	}
 }
 
-func GetInfo(c *gin.Context) {
-	//log.Println("[LOGSERVER-Info] In info handler.")
-	logger.XconfLogDebug("In info handler.", true)
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+
+	return false
+}
+
+// GetLogInfo is the handler for GET REST API, http://<ip_address>:<port>/api/v1/logs/info.
+func GetLogInfo(c *gin.Context) {
+	logger.XconfLogDebug("https://<ip_address>:<port>/v1/logs/info GET Handler", true)
+
+	// Check for unknown queries.
+	validQueries := []string{"id", "file_name", "size", "size.gt", "size.lt", "owner", "create_date", "create_date.gt", "create_date.lt"}
+	queries := c.Request.URL.Query()
+	//fmt.Println("queries:", queries)
+	for k, _ := range queries {
+		if !contains(validQueries, k) {
+			//fmt.Printf("%s -> %s\n", k, v)
+			err := errors.New("Invalid query " + k)
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "Info retrieval error",
+				"reason":  err.Error(),
+			})
+			return
+		}
+	}
 
 	// Parse filter input.
 	timeID := c.Query("id")
@@ -440,7 +467,7 @@ func GetInfo(c *gin.Context) {
 	//filter.Description = description
 
 	var info []LogEntry
-	info, err = retrieveLogInfo(gSession, &filter)
+	info, err = LogServer.RetrieveLogInfo(&filter)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Info retrieval error",
