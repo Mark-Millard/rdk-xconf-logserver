@@ -84,22 +84,23 @@ Where *<server_ip_address>* is the IP Address for the logserver.
 To upload a file to the logserver, you can use the following curl command:
 
 ```
-$ curl -X POST http://localhost:8080/api/v1/logs/upload -F "file=@<file_path>" -H "Content-Type: multipart/form-data"
+$ curl --location -g --request POST 'http://localhost:8080/api/v1/logs/upload' --header 'Content-Type: multipart/form-data' --form 'filename=@"<file_name>"' --form 'description="<description>"' --form 'contact="<email_address>"'
 
 For example:
 
-$ curl -X POST http://localhost:8080/api/v1/logs/upload -F "file=@/home/msm/tmp/BACDAEBE728B_Logs_04-12-20-06-35PM.tgz" -H "Content-Type: multipart/form-data"
+$ curl --location -g --request POST 'http://localhost:8080/api/v1/logs/upload' --header 'Content-Type: multipart/form-data' --form 'filename=@"./BACDDEADBEEF_Logs_05-19-20-04-13PM.tgz"' --form 'description="Xconf Log Files Package"' --form 'contact="mark.s.millard@gmail.com.com"'
 ```
+
 ### Download a Log from the Server
 
 To download a file from the logserver, you can use the following curl command:
 
 ```
-$ curl -X GET http://localhost:8080/api/v1/logs/download?name=<file_name>
+$ curl --location -g --request GET 'http://localhost:8080/api/v1/logs/download?name=<file_name>' --output <local_file_name>
 
 For example:
 
-$ curl -X GET http://localhost:8080/api/v1/logs/download?name=BACDAEBE728B_Logs_04-12-20-06-35PM.tgz
+$ curl --location -g --request GET 'http://localhost:8080/api/v1/logs/download?name=BACDAEBE728B_Logs_04-12-20-06-35PM.tgz' --output BACDAEBE728B_Logs_04-12-20-06-35PM.tgz
 ```
 
 ### Delete a Log on the Server
@@ -107,9 +108,22 @@ $ curl -X GET http://localhost:8080/api/v1/logs/download?name=BACDAEBE728B_Logs_
 To delete a file from the logserver, you can use the following curl command:
 
 ```
-$ curl -X DELETE http://localhost:8080/api/v1/logs/<file_name>
+$ curl --location -g --request DELETE 'http://localhost:8080/api/v1/logs/<file_name>' --data-raw ''
 
 For example:
 
-$ curl -X DELETE http://localhost:8080/api/v1/logs/BACDAEBE728B_Logs_04-12-20-06-35PM.tgz
+$ curl --location -g --request DELETE 'http://localhost:8080/api/v1/logs/BACDAEBE728B_Logs_04-12-20-06-35PM.tgz' --data-raw ''
+```
+
+### Get Information about the Log
+
+To retrieve information about the log on the logserver, you can use the
+following curl command:
+
+```
+curl --location -g --request GET 'http://localhost:8080/api/v1/logs/info?file_name=<file_name>'
+
+For example:
+
+curl --location -g --request GET 'http://localhost:8080/api/v1/logs/info?file_name=BACDDEADBEEF_Logs_05-19-20-04-13PM.tgz'
 ```
