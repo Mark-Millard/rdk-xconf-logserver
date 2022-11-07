@@ -1,10 +1,14 @@
-# Alticast Xconf Log Server
+# Xconf Log Server
 
-The Alticast Xconf logserver is a simple file server written in the Go Language.
+The Xconf logserver is a simple file server written in the Go Language.
 It may be used to upload files to the server and stored to the local file
 system. Uploaded files may also be downloaded via the Web UI or a REST API.
 
 ## Build Instructions
+
+The preferred way to build the Xconf Log Server is to use Docker. Instructions
+for this appraoch may be found on the [Docker Build Instructions](https://github.com/Mark-Millard/rdk-xconf-logserver/wiki/Docker-Build-Instructions) project
+wiki page.
 
 ### Dependencies
 
@@ -22,29 +26,13 @@ follow these instructions:
 
         $ git clone git@github.com:alticast/rdk-xconf-logserver.git
 
-2. Set the GOPATH to the downloaded source code directory:
+2. Do NOT set GOPATH. Setting GOPATH will conflict with using go modules (as defined by the _go.mod_ and _go.sum_ files).
 
-        $ cd <project>
-        $ export GOPATH=`pwd`
-
-Where __project__ is the directory where the source was cloned (i.e. __rdk-xconf-logserver__).
-
-3. Install the Go gin package:
-
-        $ go get -u github.com/gin-gonic/gin
-
-4. Install the Go viper package:
-
-        $ go get -u github.com/spf13/viper
-
-5. Install the Go gocql package:
-
-        $ go get -u github.com/gocql/gocql
+3. There is no need to explicitly install go library dependencies. They are handled by the go modules files.
 
 6. Build the source:
 
-        $ cd src
-        $ go build -o logserver
+        $ go build -o logserver ./...
 
 The executable, *logserver*, will be created.
 
@@ -69,7 +57,7 @@ The JSON message **{"message":"pong"}** will be returned upon success.
 
 ## Configuration
 
-The Alticast logserver uses a ***config.yml*** file to configure its behavior.
+The logserver uses a ***config.yml*** file to configure its behavior.
 The configuration file may be located in either the */etc/logserver*,
 */opt/logserver/config*, or *$HOME/.logserver* directory.
 
@@ -100,7 +88,7 @@ $ curl -X POST http://localhost:8080/api/v1/logs/upload -F "file=@<file_path>" -
 
 For example:
 
-$ curl -X POST http://localhost:8080/api/v1/logs/upload -F "file=@/home/msm/tmp/logserverTest_v1.txt" -H "Content-Type: multipart/form-data"
+$ curl -X POST http://localhost:8080/api/v1/logs/upload -F "file=@/home/msm/tmp/BACDAEBE728B_Logs_04-12-20-06-35PM.tgz" -H "Content-Type: multipart/form-data"
 ```
 ### Download a Log from the Server
 
@@ -111,7 +99,7 @@ $ curl -X GET http://localhost:8080/api/v1/logs/download?name=<file_name>
 
 For example:
 
-$ curl -X GET http://localhost:8080/api/v1/logs/download?name=logserverTest_v1.txt
+$ curl -X GET http://localhost:8080/api/v1/logs/download?name=BACDAEBE728B_Logs_04-12-20-06-35PM.tgz
 ```
 
 ### Delete a Log on the Server
@@ -123,5 +111,5 @@ $ curl -X DELETE http://localhost:8080/api/v1/logs/<file_name>
 
 For example:
 
-$ curl -X DELETE http://localhost:8080/api/v1/logs/logserverTest_v1.txt
+$ curl -X DELETE http://localhost:8080/api/v1/logs/BACDAEBE728B_Logs_04-12-20-06-35PM.tgz
 ```
