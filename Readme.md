@@ -6,6 +6,10 @@ system. Uploaded files may also be downloaded via the Web UI or a REST API.
 
 ## Build Instructions
 
+The preferred way to build the Xconf Log Server is to use Docker. Instructions
+for this appraoch may be found on the [Docker Build Instructions](https://github.com/Mark-Millard/rdk-xconf-logserver/wiki/Docker-Build-Instructions) project
+wiki page.
+
 ### Dependencies
 
 1. Ubuntu 18.04 LTS 64-bit platform
@@ -84,7 +88,7 @@ $ curl -X POST http://localhost:8080/api/v1/logs/upload -F "file=@<file_path>" -
 
 For example:
 
-$ curl -X POST http://localhost:8080/api/v1/logs/upload -F "file=@/home/msm/tmp/logserverTest_v1.txt" -H "Content-Type: multipart/form-data"
+$ curl -X POST http://localhost:8080/api/v1/logs/upload -F "file=@/home/msm/tmp/BACDAEBE728B_Logs_04-12-20-06-35PM.tgz" -H "Content-Type: multipart/form-data"
 ```
 ### Download a Log from the Server
 
@@ -95,7 +99,7 @@ $ curl -X GET http://localhost:8080/api/v1/logs/download?name=<file_name>
 
 For example:
 
-$ curl -X GET http://localhost:8080/api/v1/logs/download?name=logserverTest_v1.txt
+$ curl -X GET http://localhost:8080/api/v1/logs/download?name=BACDAEBE728B_Logs_04-12-20-06-35PM.tgz
 ```
 
 ### Delete a Log on the Server
@@ -107,5 +111,5 @@ $ curl -X DELETE http://localhost:8080/api/v1/logs/<file_name>
 
 For example:
 
-$ curl -X DELETE http://localhost:8080/api/v1/logs/logserverTest_v1.txt
+$ curl -X DELETE http://localhost:8080/api/v1/logs/BACDAEBE728B_Logs_04-12-20-06-35PM.tgz
 ```
