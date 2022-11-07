@@ -37,7 +37,7 @@ func createLogSizeQuery(size int64) (string, error) {
 	var parts []string
 
 	parts = make([]string, 0)
-	parts = append(parts, "SELECT time_id, size FROM \"LogSize\"")
+	parts = append(parts, "SELECT time_id, size FROM \"LogDataService\".\"LogSize\"")
 	if size >= 0 {
 		var fileSize string = strconv.FormatInt(size, 10)
 		parts = append(parts, " WHERE size = ")
@@ -59,7 +59,7 @@ func createLogSizeRangeQuery(lowerBound int64, upperBound int64) (string, error)
 	var lowerSpecified bool = false
 
 	parts = make([]string, 0)
-	parts = append(parts, "SELECT time_id, size FROM \"LogSize\"")
+	parts = append(parts, "SELECT time_id, size FROM \"LogDataService\".\"LogSize\"")
 	if lowerBound >= 0 {
 		var lower string = strconv.FormatInt(lowerBound, 10)
 		parts = append(parts, " WHERE size >= ")
@@ -91,7 +91,7 @@ func createLogSizeQueryForUUID(uuid gocql.UUID) (string, error) {
 	var parts []string
 
 	parts = make([]string, 0)
-	parts = append(parts, "SELECT time_id, size FROM \"LogSize\"")
+	parts = append(parts, "SELECT time_id, size FROM \"LogDataService\".\"LogSize\"")
 	parts = append(parts, " WHERE time_id = ")
 	parts = append(parts, uuid.String())
 

@@ -36,7 +36,7 @@ func createLogOwnerQuery(owner string) (string, error) {
 	var parts []string
 
 	parts = make([]string, 0)
-	parts = append(parts, "SELECT time_id, owner FROM \"LogOwner\"")
+	parts = append(parts, "SELECT time_id, owner FROM \"LogDataService\".\"LogOwner\"")
 	if owner != "" {
 		parts = append(parts, " WHERE owner = '")
 		parts = append(parts, owner+"'")
@@ -56,7 +56,7 @@ func createLogOwnerQueryForUUID(uuid gocql.UUID) (string, error) {
 	var parts []string
 
 	parts = make([]string, 0)
-	parts = append(parts, "SELECT time_id, owner FROM \"LogOwner\"")
+	parts = append(parts, "SELECT time_id, owner FROM \"LogDataService\".\"LogOwner\"")
 	parts = append(parts, " WHERE time_id = ")
 	parts = append(parts, uuid.String())
 

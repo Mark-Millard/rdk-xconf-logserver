@@ -20,6 +20,7 @@ package main
 
 // Declare imported packages.
 import (
+	"fmt"
 	"logserver/logger"
 
 	"errors"
@@ -30,6 +31,7 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/spf13/viper"
 )
 
 // Declare global variables.
@@ -59,20 +61,47 @@ type LogFilter struct {
 	Owner           string     // The owner of the file.
 }
 
+// CassandraConfig defines the Cluster configuration parameters.
+type CassandraConfig struct {
+	Hosts                []string
+	ReconnectionRetries  int
+	ReconnectionInterval int64
+	//Keyspace             string
+}
+
 // Opens a session with the Cassandra cluster.
-func openSession(hosts []string) (*gocql.Session, error) {
+func openSession(config CassandraConfig) (*gocql.Session, error) {
+	msg := fmt.Sprintf("Opening Cassandra session with hosts: %s", config.Hosts)
+	logger.XconfLogDebug(msg, true)
+
 	// Validate input arguments.
-	if len(hosts) == 0 {
+	if len(config.Hosts) == 0 {
 		err := errors.New("invalid input argument")
-		//log.Println("[LOGSERVER-Error] Unable to open a cassandra session:", err, ".")
-		logger.XconfLogError("Unable to open a cassandra session: "+err.Error()+".", true)
+		msg := fmt.Sprintf("Unable to open a Cassandra session: %s.", err)
+		logger.XconfLogError(msg, true)
 		return nil, err
 	}
 
 	// Connect to the cluster.
-	cluster := gocql.NewCluster(hosts[0])
-	cluster.Keyspace = "LogDataService"
+	cluster := gocql.NewCluster(config.Hosts[0])
+
+	/* Todo: Enable Cassandra authentication.
+	   cluster.Authenticator = gocql.PasswordAuthenticator {
+	           Username: "user",
+	           Password: "password" }
+	*/
+	/* Todo: Enable Transport Layer Security
+	   cluster.SslOpts = &gocql.SslOptions{
+	           EnableHostVerification: true,
+	   }
+	*/
+
+	//cluster.Keyspace = "LogDataService"
 	cluster.Consistency = gocql.Quorum
+	cluster.ReconnectionPolicy = &gocql.ConstantReconnectionPolicy{
+		MaxRetries: config.ReconnectionRetries,
+		Interval:   time.Duration(config.ReconnectionInterval) * time.Second}
+
 	session, err := cluster.CreateSession()
 	if err != nil {
 		//log.Println("[LOGSERVER-Error] Unable to create a cassandra session:", err, ".")
@@ -84,6 +113,8 @@ func openSession(hosts []string) (*gocql.Session, error) {
 
 // closeSession will close the specified session.
 func closeSession(session *gocql.Session) error {
+	logger.XconfLogDebug("Closing Cassandra session.", true)
+
 	// Validate input arguments.
 	if session == nil {
 		err := errors.New("invalid input argument")
@@ -97,10 +128,241 @@ func closeSession(session *gocql.Session) error {
 	return nil
 }
 
-// registerLog will insert the log meta-data to the Cassandra cluster.
-func registerLog(session *gocql.Session, entry *LogEntry) error {
+// InitializeDB is used to initialize the Log Server Cassandra DB schema.
+func (server *LogServerStruct) InitializeDB() error {
+	logger.XconfLogInfo("Initializing Cassandra DB Log Server meta-data.", true)
+
+	var err error
+	var msg string
+
+	// Cassandra session must be already open in order to initialize DB Schema.
+	if server.Session == nil {
+		err = fmt.Errorf("invalid session: not open")
+		logger.XconfLogError(err.Error(), true)
+		return err
+	}
+
+	// Initialize ASUD Server keyspace.
+	query := "CREATE KEYSPACE IF NOT EXISTS \"LogDataService\" WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'}  AND durable_writes = true"
+	msg = fmt.Sprintf("Cassandra DB query: %s", query)
+	logger.XconfLogDebug(msg, true)
+	err = server.Session.Query(query).Exec()
+	if err != nil {
+		logger.XconfLogError(err.Error(), true)
+		return err
+	}
+
+	query = `CREATE TABLE IF NOT EXISTS "LogDataService"."LogEntry" (
+		time_id timeuuid,
+		file_name text,
+		location text,
+		contact text,
+		description text,
+		PRIMARY KEY ((time_id), file_name, contact, description, location)
+	);`
+	msg = fmt.Sprintf("Cassandra DB query: %s", query)
+	logger.XconfLogDebug(msg, true)
+	err = server.Session.Query(query).Exec()
+	if err != nil {
+		logger.XconfLogError(err.Error(), true)
+		return err
+	}
+
+	query = `CREATE TABLE IF NOT EXISTS "LogDataService"."LogOwner" (
+		time_id timeuuid,
+		owner text,
+		PRIMARY KEY ((time_id), owner)
+	);`
+	msg = fmt.Sprintf("Cassandra DB query: %s", query)
+	logger.XconfLogDebug(msg, true)
+	err = server.Session.Query(query).Exec()
+	if err != nil {
+		logger.XconfLogError(err.Error(), true)
+		return err
+	}
+
+	query = `CREATE TABLE IF NOT EXISTS "LogDataService"."LogSize" (
+		time_id timeuuid,
+		size bigint,
+		PRIMARY KEY ((time_id), size)
+	);`
+	msg = fmt.Sprintf("Cassandra DB query: %s", query)
+	logger.XconfLogDebug(msg, true)
+	err = server.Session.Query(query).Exec()
+	if err != nil {
+		logger.XconfLogError(err.Error(), true)
+		return err
+	}
+
+	query = `CREATE TABLE IF NOT EXISTS "LogDataService"."LogTimestamp" (
+		time_id timeuuid,
+		create_date timestamp,
+		modify_date timestamp,
+		PRIMARY KEY ((time_id), create_date)
+	);`
+	msg = fmt.Sprintf("Cassandra DB query: %s", query)
+	logger.XconfLogDebug(msg, true)
+	err = server.Session.Query(query).Exec()
+	if err != nil {
+		logger.XconfLogError(err.Error(), true)
+		return err
+	}
+
+	query = `CREATE TABLE IF NOT EXISTS "LogDataService"."LogDeviceIndex" (
+		uuid timeuuid,
+		device_id text,
+		logs set<timeuuid>,
+		PRIMARY KEY ((uuid), device_id)
+	);`
+	msg = fmt.Sprintf("Cassandra DB query: %s", query)
+	logger.XconfLogDebug(msg, true)
+	err = server.Session.Query(query).Exec()
+	if err != nil {
+		logger.XconfLogError(err.Error(), true)
+		return err
+	}
+
+	query = `CREATE INDEX IF NOT EXISTS ON "LogDataService"."LogEntry" (file_name);`
+	msg = fmt.Sprintf("Cassandra DB query: %s", query)
+	logger.XconfLogDebug(msg, true)
+	err = server.Session.Query(query).Exec()
+	if err != nil {
+		logger.XconfLogError(err.Error(), true)
+		return err
+	}
+
+	query = `CREATE INDEX IF NOT EXISTS ON "LogDataService"."LogOwner" (owner);`
+	msg = fmt.Sprintf("Cassandra DB query: %s", query)
+	logger.XconfLogDebug(msg, true)
+	err = server.Session.Query(query).Exec()
+	if err != nil {
+		logger.XconfLogError(err.Error(), true)
+		return err
+	}
+
+	query = `CREATE INDEX IF NOT EXISTS ON "LogDataService"."LogTimestamp" (create_date);`
+	msg = fmt.Sprintf("Cassandra DB query: %s", query)
+	logger.XconfLogDebug(msg, true)
+	err = server.Session.Query(query).Exec()
+	if err != nil {
+		logger.XconfLogError(err.Error(), true)
+		return err
+	}
+
+	query = `CREATE INDEX IF NOT EXISTS ON "LogDataService"."LogSize" (size);`
+	msg = fmt.Sprintf("Cassandra DB query: %s", query)
+	logger.XconfLogDebug(msg, true)
+	err = server.Session.Query(query).Exec()
+	if err != nil {
+		logger.XconfLogError(err.Error(), true)
+		return err
+	}
+
+	query = `CREATE INDEX IF NOT EXISTS ON "LogDataService"."LogDeviceIndex" (device_id);`
+	msg = fmt.Sprintf("Cassandra DB query: %s", query)
+	logger.XconfLogDebug(msg, true)
+	err = server.Session.Query(query).Exec()
+	if err != nil {
+		logger.XconfLogError(err.Error(), true)
+		return err
+	}
+
+	return err
+}
+
+// OpenSession() will open a session for the Log Server.
+func (server LogServerStruct) OpenSession() (*gocql.Session, error) {
+	logger.XconfLogInfo("Opening Cassandra DB session for Log Server meta-data.", true)
+
+	var session *gocql.Session
+	var err error
+
+	// If the Session has already been opened, return it.
+	if server.Session != nil {
+		// Todo: validate that we can still reach the opened server?
+		// Is there a way to do this without making a query to the server?
+		return server.Session, nil
+	}
+
+	// Get the Cassandra DB configuration to open.
+	cassandraHosts := viper.GetStringSlice("cassandra.hosts")
+	if len(cassandraHosts) == 0 {
+		server.Session = nil
+
+		err = fmt.Errorf("cassandra configuration not found")
+		logger.XconfLogError(err.Error(), true)
+		return nil, err
+	}
+
+	// Open a cassandra session for Log meta-data.
+	var config CassandraConfig
+	config.Hosts = cassandraHosts
+	//config.Keyspace = viper.GetString("logserver.cassandra.keyspace")
+	config.ReconnectionRetries = viper.GetInt("cassandra.reconnection.tries")
+	config.ReconnectionInterval = viper.GetInt64("cassandra.reconnection.interval")
+
+	connectionRetry := 0
+	for {
+		msg := fmt.Sprintf("Cassandra connection attempt: %d", connectionRetry)
+		logger.XconfLogDebug(msg, true)
+		session, err = openSession(config)
+		if err == nil {
+			break
+		}
+
+		if connectionRetry <= config.ReconnectionRetries {
+			// Attempt to open the session again after waiting.
+			connectionRetry++
+			time.Sleep(time.Duration(config.ReconnectionInterval) * time.Second)
+		} else {
+			// Give up after config.ReconectionRetries attempts.
+			break
+		}
+	}
+	if err != nil {
+		server.Session = nil
+
+		logger.XconfLogError(err.Error(), true)
+		return nil, err
+	}
+	server.Session = session
+
+	return session, nil
+}
+
+// CloseSession will close the active Cassandra DB session for the Log Server.
+func (server *LogServerStruct) CloseSession() error {
+	logger.XconfLogInfo("Closing Cassandra DB session fore Log Server.", true)
+
+	// Check if the session is already closed.
+	if server.Session == nil {
+		return nil
+	}
+
+	// Close the cassandra session.
+	err := closeSession(server.Session)
+	if err != nil {
+		// An error occurred while closing the session.
+		logger.XconfLogError(err.Error(), true)
+		return err
+	}
+
+	server.Session = nil
+	return nil
+}
+
+// GetSession will get the active Cassandra DB session for the Log Server.
+func (server *LogServerStruct) GetSession() (*gocql.Session, error) {
+	session, err := server.OpenSession()
+	return session, err
+}
+
+// RegisterLog will insert the log meta-data to the Cassandra cluster.
+func (server *LogServerStruct) RegisterLog(entry *LogEntry) error {
+	logger.XconfLogDebug("Registering log.", true)
+
 	// Validate input arguments.
-	if session == nil {
+	if server.Session == nil {
 		err := errors.New("invalid input argument")
 		//log.Println("[LOGSERVER-Error] Unable to register a log:", err, ".")
 		logger.XconfLogError("Unable to register a log: "+err.Error()+".", true)
@@ -117,19 +379,19 @@ func registerLog(session *gocql.Session, entry *LogEntry) error {
 	var err error
 	uuid := gocql.TimeUUID()
 
-	if err = session.Query(`INSERT INTO "LogEntry" (time_id, file_name, location, contact, description) VALUES (?, ?, ?, ?, ?)`,
+	if err = server.Session.Query(`INSERT INTO "LogDataService"."LogEntry" (time_id, file_name, location, contact, description) VALUES (?, ?, ?, ?, ?)`,
 		uuid, entry.FileName, entry.Location, entry.Contact, entry.Description).Exec(); err != nil {
 		log.Println("[LOGSERVER-Error]", err)
 	}
-	if err = session.Query(`INSERT INTO "LogOwner" (time_id, owner) VALUES (?, ?)`,
+	if err = server.Session.Query(`INSERT INTO "LogDataService"."LogOwner" (time_id, owner) VALUES (?, ?)`,
 		uuid, entry.Owner).Exec(); err != nil {
 		log.Println("[LOGSERVER-Error]", err)
 	}
-	if err = session.Query(`INSERT INTO "LogSize" (time_id, size) VALUES (?, ?)`,
+	if err = server.Session.Query(`INSERT INTO "LogDataService"."LogSize" (time_id, size) VALUES (?, ?)`,
 		uuid, entry.Size).Exec(); err != nil {
 		log.Println("[LOGSERVER-Error]", err)
 	}
-	if err = session.Query(`INSERT INTO "LogTimestamp" (time_id, create_date) VALUES (?, ?)`,
+	if err = server.Session.Query(`INSERT INTO "LogDataService"."LogTimestamp" (time_id, create_date) VALUES (?, ?)`,
 		uuid, entry.CreateDate).Exec(); err != nil {
 		log.Println("[LOGSERVER-Error]", err)
 	}
@@ -139,9 +401,9 @@ func registerLog(session *gocql.Session, entry *LogEntry) error {
 }
 
 // unregisterLog removes the log meta-data from the Cassandra cluster.
-func unregisterLog(session *gocql.Session, entry *LogEntry) error {
+func (server *LogServerStruct) UnregisterLog(entry *LogEntry) error {
 	// Validate input arguments.
-	if session == nil {
+	if server.Session == nil {
 		err := errors.New("invalid input argument")
 		//log.Println("[LOGSERVER-Error] Unable to unregister a log:", err, ".")
 		logger.XconfLogError("Unable to unregister a log: "+err.Error()+".", true)
@@ -156,25 +418,25 @@ func unregisterLog(session *gocql.Session, entry *LogEntry) error {
 
 	// Remove a log entry.
 	var err error
-	if err = session.Query(`DELETE FROM "LogEntry" WHERE time_id = ? AND file_name = ?`,
+	if err = server.Session.Query(`DELETE FROM "LogDataService"."LogEntry" WHERE time_id = ? AND file_name = ?`,
 		entry.TimeID, entry.FileName).Exec(); err != nil {
 		//log.Println("[LOGSERVER-Error]", err)
 		logger.XconfLogError(err.Error(), true)
 		return err
 	}
-	if err = session.Query(`DELETE FROM "LogOwner" WHERE time_id = ? AND owner = ?`,
+	if err = server.Session.Query(`DELETE FROM "LogDataService"."LogOwner" WHERE time_id = ? AND owner = ?`,
 		entry.TimeID, entry.Owner).Exec(); err != nil {
 		//log.Println("[LOGSERVER-Error]", err)
 		logger.XconfLogError(err.Error(), true)
 		return err
 	}
-	if err = session.Query(`DELETE FROM "LogSize" WHERE time_id = ? AND size = ?`,
+	if err = server.Session.Query(`DELETE FROM "LogDataService"."LogSize" WHERE time_id = ? AND size = ?`,
 		entry.TimeID, entry.Size).Exec(); err != nil {
 		//log.Println("[LOGSERVER-Error]", err)
 		logger.XconfLogError(err.Error(), true)
 		return err
 	}
-	if err = session.Query(`DELETE FROM "LogTimestamp" WHERE time_id = ? AND create_date = ?`,
+	if err = server.Session.Query(`DELETE FROM "LogDataService"."LogTimestamp" WHERE time_id = ? AND create_date = ?`,
 		entry.TimeID, entry.CreateDate).Exec(); err != nil {
 		//log.Println("[LOGSERVER-Error]", err)
 		logger.XconfLogError(err.Error(), true)
@@ -373,9 +635,9 @@ func filterIsEmpty(filter *LogFilter) bool {
 	return false
 }
 
-func retrieveLogInfo(session *gocql.Session, filter *LogFilter) ([]LogEntry, error) {
+func (server LogServerStruct) RetrieveLogInfo(filter *LogFilter) ([]LogEntry, error) {
 	// Validate input arguments.
-	if session == nil {
+	if server.Session == nil {
 		err := errors.New("invalid input argument")
 		//log.Println("[LOGSERVER-Error] Unable to register a log:", err, ".")
 		logger.XconfLogError("Unable to register a log: "+err.Error()+".", true)
@@ -391,7 +653,7 @@ func retrieveLogInfo(session *gocql.Session, filter *LogFilter) ([]LogEntry, err
 	var values []LogEntry
 	if filterIsEmpty(filter) || filterContainsFilenameOnly(filter) {
 		var err error
-		values, err = processLogEntryQuery(session, filter)
+		values, err = processLogEntryQuery(server.Session, filter)
 		if err != nil {
 			//log.Println("[LOGSERVER-Error]", err)
 			logger.XconfLogError(err.Error(), true)
@@ -399,7 +661,7 @@ func retrieveLogInfo(session *gocql.Session, filter *LogFilter) ([]LogEntry, err
 		}
 	} else if filterContainsSizeOnly(filter) || filterContainsSizeRangeOnly(filter) {
 		var err error
-		values, err = processSizeQuery(session, filter.SizeLower, filter.SizeUpper)
+		values, err = processSizeQuery(server.Session, filter.SizeLower, filter.SizeUpper)
 		if err != nil {
 			//log.Println("[LOGSERVER-Error]", err)
 			logger.XconfLogError(err.Error(), true)
@@ -407,7 +669,7 @@ func retrieveLogInfo(session *gocql.Session, filter *LogFilter) ([]LogEntry, err
 		}
 	} else if filterContainsOwnerOnly(filter) {
 		var err error
-		values, err = processOwnerQuery(session, filter)
+		values, err = processOwnerQuery(server.Session, filter)
 		if err != nil {
 			//log.Println("[LOGSERVER-Error]", err)
 			logger.XconfLogError(err.Error(), true)
@@ -415,7 +677,7 @@ func retrieveLogInfo(session *gocql.Session, filter *LogFilter) ([]LogEntry, err
 		}
 	} else if filterContainsCreateDateOnly(filter) || filterContainsCreateDateRangeOnly(filter) {
 		var err error
-		values, err = processCreateDateQuery(session, filter.CreateDateLower, filter.CreateDateUpper)
+		values, err = processCreateDateQuery(server.Session, filter.CreateDateLower, filter.CreateDateUpper)
 		if err != nil {
 			//log.Println("[LOGSERVER-Error]", err)
 			logger.XconfLogError(err.Error(), true)
@@ -423,7 +685,7 @@ func retrieveLogInfo(session *gocql.Session, filter *LogFilter) ([]LogEntry, err
 		}
 	} else if filterContainsFilenameAndSizeRange(filter) {
 		var err error
-		values, err = processFilenameAndSizeQuery(session, filter)
+		values, err = processFilenameAndSizeQuery(server.Session, filter)
 		if err != nil {
 			//log.Println("[LOGSERVER-Error]", err)
 			logger.XconfLogError(err.Error(), true)
@@ -431,7 +693,7 @@ func retrieveLogInfo(session *gocql.Session, filter *LogFilter) ([]LogEntry, err
 		}
 	} else if filterContainsFilenameAndDateRange(filter) {
 		var err error
-		values, err = processFilenameAndCreateDateQuery(session, filter)
+		values, err = processFilenameAndCreateDateQuery(server.Session, filter)
 		if err != nil {
 			//log.Println("[LOGSERVER-Error]", err)
 			logger.XconfLogError(err.Error(), true)
@@ -439,7 +701,7 @@ func retrieveLogInfo(session *gocql.Session, filter *LogFilter) ([]LogEntry, err
 		}
 	} else if filterContainsFilenameAndSizeRangeAndDateRange(filter) {
 		var err error
-		values, err = processFilenameAndSizeAndCreateDateQuery(session, filter)
+		values, err = processFilenameAndSizeAndCreateDateQuery(server.Session, filter)
 		if err != nil {
 			//log.Println("[LOGSERVER-Error]", err)
 			logger.XconfLogError(err.Error(), true)

@@ -86,7 +86,7 @@ func UploadLog(c *gin.Context) {
 		}
 
 		// Register the meta-data with the database.
-		err = registerLog(gSession, &entry)
+		err = LogServer.RegisterLog(&entry)
 		if err != nil {
 			//log.Println("[LOGSERVER-Error] Unable to register meta-data for log,", entry.FileName)
 			logger.XconfLogError("Unable to register meta-data for log,"+entry.FileName, true)
@@ -252,7 +252,7 @@ func DeleteLog(c *gin.Context) {
 			filter.SizeUpper = -1
 
 			var info []LogEntry
-			info, err = retrieveLogInfo(gSession, &filter)
+			info, err = LogServer.RetrieveLogInfo(&filter)
 			if err != nil {
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 					"message": "Info retrieval error",
@@ -262,7 +262,7 @@ func DeleteLog(c *gin.Context) {
 			}
 
 			// Unregister the database entry.
-			err = unregisterLog(gSession, &info[0])
+			err = LogServer.UnregisterLog(&info[0])
 			if err != nil {
 				//log.Println("[LOGSERVER-Error] Unable to unregister log.")
 				logger.XconfLogError("Unable to unregister log.", true)
@@ -467,7 +467,7 @@ func GetLogInfo(c *gin.Context) {
 	//filter.Description = description
 
 	var info []LogEntry
-	info, err = retrieveLogInfo(gSession, &filter)
+	info, err = LogServer.RetrieveLogInfo(&filter)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Info retrieval error",
