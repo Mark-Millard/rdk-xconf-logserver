@@ -169,10 +169,12 @@ func DownloadLog(c *gin.Context) {
 
 		c.File(path)
 
+		/* The following causes gin to complain "http: wrote more than the declared Content-Length"
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Download success",
 			"reason":  "",
 		})
+		*/
 	} else if u.Scheme == "http" {
 		//log.Println("[LOGSERVER-Info] Downloading log from " + u.Path + ".")
 		logger.XconfLogInfo("Downloading log from "+u.Path+".", true)
